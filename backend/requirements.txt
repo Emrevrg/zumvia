@@ -1,0 +1,40 @@
+# ============================================================
+#  ZUMVIA — Backend Bağımlılıkları
+#  Python 3.11 / 3.12 önerilir (3.13+ de çalışır)
+# ============================================================
+
+# --- Web / API ---
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+
+# --- Veri doğrulama ---
+pydantic>=2.8,<3.0
+pydantic-settings>=2.4
+email-validator>=2.1
+
+# --- Veritabanı ---
+SQLAlchemy>=2.0.30,<3.0
+
+# --- Güvenlik / şifreleme ---
+cryptography>=42.0          # AES-256 zarf (Fernet) + HKDF
+PyJWT>=2.8
+
+# --- Piyasa verisi ---
+ccxt>=4.3                   # 100+ kripto borsası
+yfinance>=0.2.40            # hisse / endeks / emtia
+pandas>=2.2
+numpy>=1.26
+
+# --- Zamanlayıcı ---
+APScheduler>=3.10,<4.0
+
+# --- LLM / HTTP ---
+httpx>=0.27
+
+# --- Test ---
+pytest>=8.0
+
+# --- İsteğe bağlı ---
+# psycopg2-binary>=2.9       # PostgreSQL kullanacaksanız
+# pandas-ta>=0.3.14b         # göstergeler zaten yerleşik; karşılaştırma için

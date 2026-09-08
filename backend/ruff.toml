@@ -1,0 +1,60 @@
+# ZUMVIA — lint yapılandırması
+#
+# Amaç: gerçek hataları yakalamak, gürültü üretmemek. Aşağıdaki kurallar
+# bilinçli olarak kapalıdır ve her birinin gerekçesi yazılıdır.
+
+line-length = 100
+target-version = "py311"
+
+[lint]
+# Seçim bilinçli olarak dar: amaç HATA yakalamak, üslup tartışmak değil.
+# Geniş kural setleri binlerce kozmetik bulgu üretir ve gerçek hatalar
+# aralarında kaybolur — bu projede tam olarak bu yaşandı (F821 gibi gerçek
+# bir hata 6000 uyarının arasında kalıyordu).
+select = [
+  "F",      # mantık hataları: tanımsız isim, kullanılmayan değişken
+  "E9",     # sözdizimi/çalışma zamanı hataları
+  "B",      # yaygın tuzaklar (bugbear)
+  "I",      # içe aktarma düzeni
+  "UP",     # eskimiş sözdizimi
+  "S1",     # güvenlik: sessiz yutulan istisnalar
+  "PLE",    # pylint hataları
+  "RUF",    # ruff'a özgü gerçek sorunlar
+]
+
+ignore = [
+  # FastAPI'nin `Depends()` / `Query()` deseni tanım gereği varsayılan
+  # argümanda fonksiyon çağırır. Bu bir hata değil, çerçevenin sözleşmesi.
+  "B008",
+  # Bilinçli geniş yakalamalar: bir alt sistemin hatası ticaret motorunu
+  # durdurmamalı. Her biri satır içinde gerekçelendirilmiştir.
+  "BLE001",
+  # Türkçe metinlerde uzun açıklama satırları okunabilirliği artırıyor.
+  "E501",
+  # Karmaşıklık eşikleri: ticaret mantığı doğal olarak dallı.
+  "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004",
+  # `assert` testlerde zorunlu.
+  "S101",
+  # Rastgelelik kriptografik amaçla kullanılmıyor (demo veri üreteci).
+  "S311",
+  # Hata mesajlarını değişkene almadan raise etmek burada daha okunur.
+  "TRY003", "TRY300", "TRY301",
+  # Kullanılmayan noqa'lar kozmetik.
+  "RUF100",
+  # "Belirsiz unicode karakter": ruff, Türkçe harfleri (ı, ş, ğ, İ) Latin
+  # benzerleriyle karıştırılabilir sayıyor. Türkçe birincil dil olan bir
+  # üründe bu kural 6000 yanlış pozitif üretir.
+  "RUF001", "RUF002", "RUF003",
+  # Sunucunun tüm arayüzleri dinlemesi Docker için kasıtlıdır; port zaten
+  # 127.0.0.1'e bağlanır (bkz. docker-compose.yml).
+  "S104",
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["S105", "S106", "PLR2004", "SIM117"]
+"app/models.py" = ["RUF012"]
+# `token_type = "bearer"` OAuth2 standardının alan adıdır, parola değil.
+"app/schemas.py" = ["S105"]
+
+[lint.isort]
+known-first-party = ["app"]

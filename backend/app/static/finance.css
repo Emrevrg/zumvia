@@ -1,0 +1,459 @@
+/* ==========================================================================
+   ZUMVIA FINANCE — canlı piyasa ekranı
+
+   Yoğun sayı gösteren bir ekran. Tasarım kararı: sayılar tek hizada ve tek
+   genişlikte (tabular-nums) durur. Değişken genişlikli rakamlarla bir fiyat
+   sütunu okunmaz; göz her satırda yeniden hizalanmak zorunda kalır.
+   ========================================================================== */
+
+.fin-head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+
+.fin-search { position: relative; flex: 1 1 280px; max-width: 420px; }
+.fin-search .input { padding-left: 36px; }
+.fin-search-ico {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  color: var(--text-faint); pointer-events: none; display: flex;
+}
+
+.fin-results {
+  position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; right: 0;
+  background: var(--bg-raise); border: 1px solid var(--line-strong);
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: 0 18px 40px rgba(var(--shade-rgb), .5); max-height: 320px; overflow-y: auto;
+}
+.fin-results.hidden { display: none; }
+.fin-result {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; padding: 10px 13px; cursor: pointer; font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+.fin-result:last-child { border-bottom: 0; }
+.fin-result:hover { background: var(--bg-hover); }
+
+.fin-tabs { margin: 0; }
+
+/* ------------------------------- nabız şeridi ---------------------------- */
+
+.fin-pulse-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px; margin-bottom: 16px;
+}
+.fin-pulse {
+  background: var(--bg-raise); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 10px 12px; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.fin-pulse:hover { border-color: var(--line-strong); background: var(--bg-hover); }
+.fin-pulse.bad { opacity: .55; cursor: default; }
+.fin-pulse-label {
+  font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: .04em; margin-bottom: 4px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.fin-pulse-price {
+  font-family: var(--mono); font-size: 16px; font-variant-numeric: tabular-nums;
+  margin-bottom: 3px;
+}
+.fin-pulse-err { font-size: 12px; color: var(--text-faint); }
+
+/* --------------------------------- rozet -------------------------------- */
+
+.fin-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums;
+  padding: 2px 7px; border-radius: 6px; white-space: nowrap;
+}
+.fin-chip.up   { color: var(--emerald); background: var(--emerald-soft); }
+.fin-chip.down { color: var(--danger);  background: var(--danger-soft); }
+.fin-chip.flat { color: var(--text-dim); background: var(--bg-hover); }
+.fin-chip.dim  { color: var(--text-faint); }
+
+/* --------------------------------- tablo -------------------------------- */
+
+.fin-table td, .fin-table th { vertical-align: middle; }
+.fin-table .right, .table .right { text-align: right; }
+.fin-row { cursor: pointer; }
+.fin-row:hover { background: var(--bg-hover); }
+.fin-row.bad { cursor: default; opacity: .7; }
+.fin-name { font-size: 13.5px; }
+.fin-sym { font-size: 11.5px; color: var(--text-faint); font-family: var(--mono); }
+.fin-err { font-size: 12px; color: var(--warn); }
+.fin-table .mono { font-variant-numeric: tabular-nums; }
+.fin-spark-cell { width: 108px; }
+.fin-spark { width: 96px; height: 28px; display: block; }
+
+/* ----------------------------- hareket edenler --------------------------- */
+
+.fin-movers { display: flex; flex-direction: column; }
+.fin-mover {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 2px; border-bottom: 1px solid var(--line); cursor: pointer;
+}
+.fin-mover:last-child { border-bottom: 0; }
+.fin-mover:hover { background: var(--bg-hover); }
+.fin-mover .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* --------------------------------- haber -------------------------------- */
+
+.fin-news { display: flex; flex-direction: column; }
+.fin-news-item {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 9px 2px; border-bottom: 1px solid var(--line);
+  color: inherit; text-decoration: none;
+}
+.fin-news-item:last-child { border-bottom: 0; }
+.fin-news-item:hover { background: var(--bg-hover); }
+.fin-score {
+  font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums;
+  min-width: 30px; text-align: center; padding: 2px 0; border-radius: 5px;
+  flex-shrink: 0; margin-top: 1px;
+}
+.fin-score.up   { color: var(--emerald); background: var(--emerald-soft); }
+.fin-score.down { color: var(--danger);  background: var(--danger-soft); }
+/* Notr haber skoru da okunmali: --text-faint yikama uzerinde 4.07'de kaliyordu. */
+.fin-score.flat { color: var(--text-dim); background: var(--bg-hover); }
+.fin-news-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fin-news-title { font-size: 13px; line-height: 1.4; }
+.fin-news-meta { font-size: 11px; color: var(--text-faint); }
+
+.fin-foot { margin-top: 14px; line-height: 1.6; }
+
+/* ----------------------------- enstrüman dosyası ------------------------- */
+
+.fin-modal { max-width: 860px; width: 94vw; }
+.fin-detail-top {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 12px; gap: 12px; flex-wrap: wrap;
+}
+.fin-detail-price {
+  font-family: var(--mono); font-size: 30px; font-variant-numeric: tabular-nums;
+  line-height: 1.1; margin-bottom: 4px;
+}
+.fin-chart { height: 280px; border-radius: var(--radius-sm); overflow: hidden; }
+.panel.stat.sm { padding: 10px 12px; }
+.panel.stat.sm .stat-value { font-size: 17px; }
+
+/* ==========================================================================
+   Sohbet "+" menüsü ve dosya ekleri
+   ========================================================================== */
+
+.mode-menu {
+  position: fixed; z-index: 60; min-width: 288px;
+  background: var(--bg-raise); border: 1px solid var(--line-strong);
+  border-radius: var(--radius); padding: 6px;
+  box-shadow: 0 22px 48px rgba(var(--shade-rgb), .55);
+}
+.mode-item {
+  display: flex; gap: 11px; align-items: flex-start;
+  padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer;
+}
+.mode-item:hover { background: var(--bg-hover); }
+.mode-item.on { background: var(--emerald-soft); }
+.mode-ico { color: var(--text-dim); display: flex; margin-top: 1px; flex-shrink: 0; }
+.mode-item.on .mode-ico { color: var(--emerald); }
+.mode-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mode-label { font-size: 13.5px; }
+.mode-hint { font-size: 11.5px; color: var(--text-faint); line-height: 1.45; }
+.mode-sep { height: 1px; background: var(--line); margin: 5px 8px; }
+
+/* Seçili mod, yazı kutusunun üstünde durur: kullanıcı ne modda olduğunu
+   göndermeden ÖNCE görmeli. */
+.composer-context {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 0 4px 7px;
+}
+.ctx-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; padding: 3px 8px; border-radius: 999px;
+  background: var(--emerald-soft); color: var(--emerald);
+  border: 1px solid var(--emerald-line);
+}
+.ctx-pill.file { background: var(--info-soft); color: var(--info);
+                 border-color: rgba(98, 176, 255, .28); }
+.ctx-pill.warn { background: var(--warn-soft); color: var(--warn);
+                 border-color: rgba(255, 176, 32, .3); }
+.ctx-pill button {
+  background: none; border: 0; color: inherit; cursor: pointer;
+  padding: 0; display: flex; opacity: .75;
+}
+.ctx-pill button:hover { opacity: 1; }
+
+/* Sohbetteki bağlam satırı: katlanır, çünkü 60 bin karakterlik bir dosya
+   dökümü sohbeti okunmaz hale getirir. */
+.msg-context {
+  border: 1px dashed var(--line-strong); border-radius: var(--radius-sm);
+  padding: 8px 12px; margin: 6px 0; background: rgba(var(--tint-rgb), .02);
+}
+.msg-context summary {
+  cursor: pointer; font-size: 12px; color: var(--text-dim);
+  list-style: none; display: flex; align-items: center; gap: 7px;
+}
+.msg-context summary::-webkit-details-marker { display: none; }
+.msg-context pre {
+  margin: 9px 0 0; font-size: 11.5px; color: var(--text-dim);
+  max-height: 300px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+}
+
+@media (max-width: 720px) {
+  .fin-spark-cell { display: none; }
+  .fin-detail-price { font-size: 24px; }
+  .mode-menu { min-width: 0; left: 10px !important; right: 10px; width: auto; }
+}
+
+/* ==========================================================================
+   Çalışma modu anahtarı — Sor / Planla / Uygula
+
+   Açılır liste değil, üç görünür düğme. Sebebi: bu seçim kullanıcının
+   göndermeden ÖNCE görmesi gereken en önemli bilgi. Açılır listede seçili
+   değeri okumak için tıklamak gerekir; burada üçü de ortada durur.
+   ========================================================================== */
+
+.work-switch {
+  display: inline-flex; gap: 2px; padding: 2px;
+  background: var(--bg-input); border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.work-opt {
+  border: 0; background: none; color: var(--text-dim); cursor: pointer;
+  font-size: 12px; font-family: inherit; padding: 4px 11px; border-radius: 999px;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+.work-opt:hover { color: var(--text); }
+.work-opt.on { background: var(--bg-raise); color: var(--text); }
+
+/* "Uygula" modu görsel olarak da farklı: gerçekten bir şey yapacak olan
+   moddur ve kullanıcı bunu bir bakışta ayırt etmeli. */
+.work-opt[data-work="agent"].on {
+  background: var(--emerald-soft); color: var(--emerald);
+}
+
+@media (max-width: 560px) {
+  .work-opt { padding: 4px 8px; font-size: 11.5px; }
+}
+
+/* ==========================================================================
+   SERMAYE HARİTASI — "param nerede?"
+
+   Tasarım kararı: "riskte" hücresi diğerlerinden görsel olarak AYRILIR.
+   Aynı satırda aynı ağırlıkta duran beş sayı, hepsinin aynı anlama geldiğini
+   ima eder — oysa dördü bilgi, biri uyarıdır.
+   ========================================================================== */
+
+.tre-line { font-size: 13.5px; line-height: 1.65; margin-bottom: 14px; }
+
+.tre-bar {
+  display: flex; height: 8px; border-radius: 999px; overflow: hidden;
+  background: var(--bg-input); margin-bottom: 16px;
+}
+.tre-seg { height: 100%; }
+.tre-seg.cash   { background: var(--text-faint); }
+.tre-seg.market { background: var(--emerald); }
+
+.tre-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px; background: var(--line); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); overflow: hidden;
+}
+.tre-cell { background: var(--bg-raise); padding: 11px 13px; }
+.tre-label {
+  font-size: 10.5px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: .05em; margin-bottom: 5px;
+}
+.tre-value {
+  font-family: var(--mono); font-size: 18px; font-variant-numeric: tabular-nums;
+  margin-bottom: 3px;
+}
+.tre-value.pos { color: var(--emerald); }
+.tre-value.neg { color: var(--danger); }
+.tre-foot { font-size: 11px; color: var(--text-faint); line-height: 1.45; }
+
+.tre-split {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 16px;
+}
+.tre-sub {
+  font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: .05em; margin-bottom: 7px;
+}
+.tre-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.tre-row:last-child { border-bottom: 0; }
+.tre-row .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  .tre-split { grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* ==========================================================================
+   YAZI KUTUSU DURUM IŞIĞI
+
+   Ajanın durumu artık alt satırda bir yazı değil, yazı kutusunun kendi
+   çerçevesindeki ışık. İki sebep:
+
+     1. O rozet tek başına bir satır yiyordu ve metin uzunluğu değiştikçe
+        ("hazır" → "düşünüyor…") komşu düğmeleri kaydırıyordu.
+     2. Işık çevresel görüşle okunur. Kullanıcı durumu öğrenmek için
+        BAKMAK zorunda kalmaz; yazı öyle değildir.
+
+   ÖNEMLİ: odaklanma ışığı EZMEZ.
+
+   İlk hâlinde `:focus-within` animasyonu kapatıyordu. Ama kullanıcı ajan
+   çalışırken zaten yazı kutusunun içindedir — yani ışığın en çok gerektiği
+   anda sönüyordu. Artık odaklanma yalnızca BOŞTA görünür; ajan çalışıyor
+   ya da hata verdiyse durum rengi üstte kalır.
+
+   Renkler jetondan gelir: sabit yazılsalardı açık temada yanlış yeşil
+   kullanılırdı.
+   ========================================================================== */
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* Hazır: yumuşak, sabit bir varlık. Dikkat çekmez ama "açık" olduğunu söyler. */
+.composer[data-state="idle"] {
+  border-color: var(--emerald-line);
+  box-shadow: 0 0 0 1px var(--emerald-soft),
+              0 0 26px -8px var(--emerald-line);
+}
+
+/* Boştayken odaklanma ışığın önüne geçer: kullanıcı nereye yazdığını görmeli. */
+.composer[data-state="idle"]:focus-within,
+.composer:not([data-state]):focus-within {
+  border-color: var(--emerald);
+  box-shadow: 0 0 0 3px var(--emerald-soft),
+              0 8px 24px rgba(var(--shade-rgb), .28);
+}
+
+/* Düşünüyor / çalışıyor: nefes alan parlaklık. Hareket, "bir şey oluyor"
+   demenin en hızlı yoludur — okumaya gerek yok. Odaklanma bunu KAPATMAZ. */
+.composer[data-state="thinking"],
+.composer[data-state="running"],
+.composer[data-state="thinking"]:focus-within,
+.composer[data-state="running"]:focus-within {
+  border-color: var(--mint);
+  animation: composer-breathe 1.9s ease-in-out infinite;
+}
+
+@keyframes composer-breathe {
+  0%, 100% {
+    box-shadow: 0 0 0 1px var(--emerald-soft),
+                0 0 22px -8px var(--emerald-line);
+  }
+  50% {
+    box-shadow: 0 0 0 2px var(--emerald-line),
+                0 0 42px -6px var(--mint);
+  }
+}
+
+/* Hata: kırmızı ve SABİT. Yanıp sönen bir hata panik hissi verir ve
+   kullanıcının okumasını zorlaştırır. Odaklanma bunu da gizleyemez. */
+.composer[data-state="error"],
+.composer[data-state="error"]:focus-within {
+  border-color: var(--danger);
+  animation: none;
+  box-shadow: 0 0 0 1px var(--danger-soft),
+              0 0 26px -8px var(--danger);
+}
+
+/* Hareketi azaltılmış tercih: nefes yerine sabit parlaklık. */
+@media (prefers-reduced-motion: reduce) {
+  .composer[data-state="thinking"],
+  .composer[data-state="running"],
+  .composer[data-state="thinking"]:focus-within,
+  .composer[data-state="running"]:focus-within {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--emerald-line),
+                0 0 34px -8px var(--mint);
+  }
+}
+
+/* Alt satır tek satırda kalmalı: durum rozeti kalktı, yer açıldı. */
+.composer-bar { flex-wrap: nowrap; overflow: visible; }
+.composer-bar .bar-select { min-width: 92px; }
+
+@media (max-width: 620px) {
+  .composer-bar { flex-wrap: wrap; }
+}
+
+/* ==========================================================================
+   ESKİ SUNUCU ŞERİDİ
+
+   Bu şerit, bir kez gerçekten canımızı yaktığı için var: uvicorn statik
+   dosyaları her istekte diskten okur ama Python rotalarını yalnızca
+   açılışta kaydeder. Yeni bir ekran eklenip süreç yeniden başlatılmazsa
+   ekran yüklenir, çağırdığı uç 404 döner ve kullanıcı "not found" görür.
+
+   Kodda hata yoktur; yapılacak tek şey sunucuyu yeniden başlatmaktır. Şerit
+   bunu söylüyor.
+   ========================================================================== */
+
+.stale-banner {
+  position: fixed; z-index: 200; left: 50%; bottom: 18px;
+  transform: translateX(-50%);
+  display: flex; align-items: flex-start; gap: 11px;
+  max-width: min(680px, calc(100vw - 32px));
+  padding: 13px 15px;
+  background: var(--bg-raise);
+  border: 1px solid var(--warn);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  box-shadow: 0 18px 44px rgba(var(--shade-rgb), .45);
+  font-size: 13px; line-height: 1.55;
+}
+.stale-banner > span[data-icon] { color: var(--warn); flex-shrink: 0; margin-top: 1px; }
+.stale-banner b { color: var(--warn); }
+.stale-banner .icon-btn { flex-shrink: 0; margin-left: auto; }
+
+/* ------------------------------- tema menüsü ---------------------------- */
+
+.theme-menu { min-width: 172px; }
+
+/* ==========================================================================
+   SÜRÜKLENEBİLİR AYIRICILAR
+
+   Kullanıcı kenar çubuğunu ve iş tezgâhını kendi ekranına göre ayarlayabilir.
+   Kol İNCE ama tutma alanı geniş: 4 piksellik bir çizgiyi fareyle yakalamak
+   zordur, o yüzden görünen çizgi ince, yakalama alanı 11 pikseldir.
+   ========================================================================== */
+
+.splitter {
+  position: relative;
+  flex: 0 0 6px; width: 6px; cursor: col-resize;
+  background: transparent; z-index: 20;
+  transition: background .12s;
+}
+.splitter::after {
+  content: ""; position: absolute; inset: 0 -3px;   /* geniş yakalama alanı */
+}
+.splitter:hover, .splitter.dragging { background: var(--emerald-line); }
+
+/* Sürüklerken metin seçilmesin — sürükleme yerine yazı seçmek can sıkar. */
+body.resizing { user-select: none; cursor: col-resize; }
+body.resizing iframe { pointer-events: none; }
+
+/* ==========================================================================
+   BOŞLUK DÜZENİ
+
+   Ekranda gereksiz boşluk vardı: paneller arası 12px + panel içi 16px +
+   sayfa dolgusu 16px üst üste biniyordu. Yoğun sayı gösteren bir arayüzde
+   bu, aynı ekrana daha az bilgi sığması demek.
+   ========================================================================== */
+
+.page-pad { padding: 12px 14px; }
+.grid { gap: 10px; }
+.panel { padding: 12px 14px; }
+.panel + .panel { margin-top: 10px; }
+.mb { margin-bottom: 10px; }
+.mt { margin-top: 10px; }
+.composer-zone { padding: 0 12px 12px; }
+.home-scroll { padding-top: clamp(14px, 3vh, 40px); }
+.hero-glass { padding: 18px 22px 14px; margin-bottom: 16px; }
+.home-stats { margin-top: 22px; padding-top: 16px; }
+.chips { gap: 7px; }

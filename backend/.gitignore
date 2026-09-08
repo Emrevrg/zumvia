@@ -1,0 +1,4 @@
+
+# Test veritabanı
+tests/test_verdantix.db*
+.secrets.env

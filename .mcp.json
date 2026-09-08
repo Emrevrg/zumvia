@@ -1,0 +1,21 @@
+{
+  "$comment": "ZUMVIA — MCP sunucusu. Anahtarı panelden alın (Kontrol merkezi → Bağlantılar) ve VQ_MCP_TOKEN ortam değişkenine yazın; anahtar bu dosyaya YAZILMAZ, böylece depoya sızmaz.",
+  "mcpServers": {
+    "zumvia": {
+      "$comment": "Önerilen: platform çalışırken HTTP üzerinden bağlanır.",
+      "type": "http",
+      "url": "http://127.0.0.1:8000/mcp",
+      "headers": {
+        "Authorization": "Bearer ${VQ_MCP_TOKEN}"
+      }
+    },
+    "zumvia-stdio": {
+      "$comment": "Ağ gerekmeyen alternatif: süreç doğrudan başlar, sunucu ayakta olmasa da çalışır.",
+      "command": "python",
+      "args": ["./backend/mcp_server.py"],
+      "env": {
+        "VQ_MCP_TOKEN": "${VQ_MCP_TOKEN}"
+      }
+    }
+  }
+}

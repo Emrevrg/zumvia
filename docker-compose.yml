@@ -1,0 +1,74 @@
+# ============================================================================
+#  ZUMVIA — tek komutluk kurulum
+#
+#      docker compose up -d          →  http://localhost:8000
+#
+#  Hiçbir ön hazırlık gerekmez: güvenlik anahtarları ilk açılışta otomatik
+#  üretilir ve kalıcı birimde saklanır (yeniden başlatmada oturumlar düşmez).
+#  İsteğe bağlı ayarlar için proje kökünde bir `.env` dosyası oluşturun;
+#  aşağıdaki ${...} değerleri oradan okunur.
+# ============================================================================
+
+services:
+  zumvia:
+    build:
+      context: ./backend
+    image: zumvia:latest
+    container_name: zumvia
+    restart: unless-stopped
+
+    ports:
+      # Yalnızca bu makineden erişilsin. Ağa açmak için "8000:8000" yapın
+      # ve MUTLAKA ters vekil (HTTPS) veya VPN arkasına alın.
+      - "127.0.0.1:8000:8000"
+
+    environment:
+      # Veritabanı ve anahtar dosyası kalıcı birimde durur
+      VQ_DATABASE_URL: sqlite:////app/data/zumvia.db
+      VQ_SECRETS_FILE: /app/data/secrets.env
+      TZ: ${TZ:-UTC}
+
+      # Güvenlik anahtarlarını kendiniz vermek isterseniz (opsiyonel):
+      VQ_MASTER_KEY: ${VQ_MASTER_KEY:-}
+      VQ_JWT_SECRET: ${VQ_JWT_SECRET:-}
+
+      # Gerçek para ticaretini sistem genelinde kapatmak için true yapın
+      VQ_FORCE_PAPER_ONLY: ${VQ_FORCE_PAPER_ONLY:-false}
+      VQ_LOG_LEVEL: ${VQ_LOG_LEVEL:-INFO}
+      VQ_CORS_ORIGINS: ${VQ_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+
+    volumes:
+      - zumvia-data:/app/data
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 25s
+      retries: 3
+
+    # Kapsayıcı sertleştirme
+    security_opt:
+      - no-new-privileges:true
+
+  # --------------------------------------------------------------------------
+  # İsteğe bağlı: Next.js arayüzü (yerleşik arayüz zaten :8000/ üzerinde çalışır)
+  #   docker compose --profile web up -d
+  # --------------------------------------------------------------------------
+  web:
+    profiles: ["web"]
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://zumvia:8000
+    container_name: zumvia-web
+    restart: unless-stopped
+    depends_on:
+      - zumvia
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://zumvia:8000
+
+volumes:
+  zumvia-data:

@@ -1,0 +1,19 @@
+# Sanal ortam ve derleme artıkları
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Yerel veri ve GİZLİ dosyalar — imaja ASLA girmemeli
+.env
+.secrets.env
+*.db
+*.db-shm
+*.db-wal
+data/
+reports/
+
+# Testler imajda gerekmez
+tests/

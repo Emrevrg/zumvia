@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ZUMVIA</title>
+  <meta name="description" content="Otonom yapay zeka portföy komutanı — sıfır halüsinasyon, deterministik risk kontrolü" />
+  <meta name="theme-color" content="#0d0d0d" />
+  <!--
+    Tema, stil dosyalarından ÖNCE uygulanır.
+
+    Sonraya bırakılırsa açık temayı seçmiş kullanıcı her yenilemede bir kare
+    koyu ekran görür ("yanlış tema parlaması"). Bu küçük betik, CSS
+    yüklenmeden kök öğeye doğru temayı yazar.
+  -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("vq_theme");
+        var pref = (saved === "dark" || saved === "light") ? saved
+          : (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
+             ? "light" : "dark");
+        document.documentElement.dataset.theme = pref;
+      } catch (e) { document.documentElement.dataset.theme = "dark"; }
+    })();
+  </script>
+  <link rel="stylesheet" href="/ui/styles.css" />
+  <link rel="stylesheet" href="/ui/command.css" />
+  <link rel="stylesheet" href="/ui/workspace.css" />
+  <link rel="stylesheet" href="/ui/finance.css" />
+  <link rel="stylesheet" href="/ui/responsive.css" />
+  <link rel="icon" href="/ui/brand/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/ui/brand/logo-64.png" sizes="64x64" />
+  <link rel="apple-touch-icon" href="/ui/brand/logo-256.png" />
+</head>
+<body>
+
+  <!-- ============================ GİRİŞ ============================ -->
+  <div id="auth-view" class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="mark" id="auth-mark"></div>
+        <div class="dim small" data-i18n="app.tagline" style="margin-top:6px">
+          Sanal modda başlar. Risk tavanı ve tüm sınırlar kod seviyesinde zorlanır.
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="tabs">
+          <div class="tab active" data-auth-tab="login" data-i18n="auth.login">Giriş yap</div>
+          <div class="tab" data-auth-tab="register" data-i18n="auth.register">Hesap oluştur</div>
+        </div>
+
+        <form id="auth-form" autocomplete="on">
+          <div class="field">
+            <label class="label" for="auth-email" data-i18n="auth.email">E-posta</label>
+            <input class="input" type="email" id="auth-email" required
+                   placeholder="ornek@eposta.com" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label class="label" for="auth-password" data-i18n="auth.password">Parola</label>
+            <input class="input" type="password" id="auth-password" required minlength="8"
+                   placeholder="En az 8 karakter" autocomplete="current-password" />
+          </div>
+          <div id="auth-error" class="callout red hidden"></div>
+          <button class="btn btn-primary btn-block" type="submit" id="auth-submit">Giriş yap</button>
+        </form>
+
+        <div class="callout mt small" data-i18n="auth.warning">
+          <b>Nasıl çalışır:</b> ZUMVIA finansal tavsiye vermez; paranızı sizin
+          seçtiğiniz piyasada otonom olarak yönetir. Sistem varsayılan olarak
+          sanal modda başlar.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ UYGULAMA ============================ -->
+  <div id="app-view" class="shell hidden">
+
+    <!-- --------------------------- SOL KOLON --------------------------- -->
+    <aside class="rail">
+      <div class="rail-top">
+        <div class="brand">
+          <span class="brand-mark" id="brand-mark"></span>
+          <span class="brand-text">ZUMVIA</span>
+        </div>
+        <span class="spacer"></span>
+        <button class="icon-btn" id="rail-search" title="Ara (Ctrl+K)" aria-label="Ara"
+                data-icon="search"></button>
+      </div>
+
+      <button class="new-btn" id="new-session-btn">
+        <span class="plus" data-icon="plus" data-icon-size="14"></span> <span data-i18n="nav.newTask">Yeni görev</span>
+      </button>
+
+      <nav class="rail-nav">
+        <div class="rail-item" data-route="chat">
+          <span class="ico-slot" data-icon="command"></span><span data-i18n="nav.command">Komuta</span>
+        </div>
+        <div class="rail-item" data-route="dashboard">
+          <span class="ico-slot" data-icon="portfolio"></span><span data-i18n="nav.portfolio">Portföy</span>
+        </div>
+        <div class="rail-item" data-route="finance">
+          <span class="ico-slot" data-icon="candles"></span><span data-i18n="nav.finance">Finans</span>
+        </div>
+        <div class="rail-item" data-route="bots">
+          <span class="ico-slot" data-icon="bots"></span><span data-i18n="nav.bots">Botlar</span>
+        </div>
+        <div class="rail-item" data-route="skills">
+          <span class="ico-slot" data-icon="scales"></span><span data-i18n="nav.skills">Yetenekler</span>
+        </div>
+        <div class="rail-item" data-route="vault">
+          <span class="ico-slot" data-icon="vault"></span><span data-i18n="nav.vault">Kasa</span>
+        </div>
+      </nav>
+
+      <div class="rail-scroll" id="rail-sessions"></div>
+
+      <div class="rail-foot">
+        <div class="safety-strip hidden" id="safety-strip"></div>
+        <div class="profile" id="profile-btn" data-i18n-attr="title:common.account" title="Hesap ve ayarlar">
+          <div class="avatar" id="profile-avatar"></div>
+          <div class="profile-meta">
+            <div class="profile-name" id="user-email">—</div>
+            <div class="profile-plan" id="conn-status">
+              <span class="dot dot-off"></span> bağlanıyor
+            </div>
+          </div>
+          <span class="chev" data-icon="chevronDown" data-icon-size="13"></span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Kenar çubuğu genişliğini kullanıcı ayarlar; seçim hatırlanır. -->
+    <div class="splitter" id="rail-splitter" role="separator"
+         aria-orientation="vertical"
+         data-i18n-attr="aria-label:layout.resizeRail"
+         aria-label="Kenar çubuğu genişliği"></div>
+
+    <!-- ---------------------------- ANA ALAN ---------------------------- -->
+    <main class="stage">
+      <header class="stage-top">
+        <button class="icon-btn only-mobile" id="mobile-menu"
+                data-i18n-attr="aria-label:common.menu" aria-label="Menü"
+                data-icon="menu"></button>
+        <button class="icon-btn" id="rail-toggle" data-i18n-attr="title:nav.toggleSidebar,aria-label:common.sidebar"
+                title="Kenar çubuğu" aria-label="Kenar çubuğu" data-icon="menu"></button>
+        <div class="title-chip">
+          <span class="chip-ico" id="page-icon"></span>
+          <span id="page-title">Komuta</span>
+          <span class="chip-tag" id="page-sub">ajan</span>
+        </div>
+        <span class="spacer"></span>
+        <div class="row" id="page-actions"></div>
+        <button class="icon-btn" id="theme-toggle"
+                data-i18n-attr="title:theme.title" title="Tema"
+                aria-label="Tema"></button>
+        <button class="icon-btn lang-btn-top" id="lang-toggle"
+                data-i18n-attr="title:common.language" title="Dil" aria-label="Dil">TR</button>
+        <button class="icon-btn" id="open-settings" title="Kontrol merkezi"
+                aria-label="Kontrol merkezi" data-icon="settings"></button>
+      </header>
+
+      <div class="stage-body" id="page-body"></div>
+    </main>
+  </div>
+
+  <div id="modal-root"></div>
+  <div class="toasts" id="toasts"></div>
+
+  <script type="module" src="/ui/app.js"></script>
+</body>
+</html>

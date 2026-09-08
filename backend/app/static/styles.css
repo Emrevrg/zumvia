@@ -1,0 +1,1115 @@
+/* ==========================================================================
+   ZUMVIA — Arayüz Sistemi
+   Sade, koyu, ajan-öncelikli kabuk (Claude Code masaüstü hissiyatı)
+   + Emerald / Cyber-Green fintech vurguları
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------------ tema
+     İKİ KATMAN DEĞİŞKENİ, TÜM TEMAYI ÇEVİRİR.
+
+     `--tint-rgb`  : üst üste binen yumuşak katman (hover, ince dolgu).
+                     Koyu temada BEYAZ, açık temada KOYU olur.
+     `--shade-rgb` : gölge rengi. Koyu temada siyah, açık temada mavi-gri —
+                     beyaz zeminde saf siyah gölge kirli ve sert görünür.
+
+     Bunlar değişken olmasaydı 49 ayrı yerde sabit renk kalırdı ve tema
+     çevrildiğinde biri mutlaka koyu kalır, kimse fark etmezdi.
+     ------------------------------------------------------------------- */
+  --tint-rgb: 255, 255, 255;
+  --shade-rgb: 0, 0, 0;
+
+  /* Zemin katmanları */
+  --bg: #0d0d0d;
+  --bg-rail: #141414;
+  --bg-raise: #1a1a1a;
+  --bg-input: #1e1e1e;
+  --bg-hover: rgba(var(--tint-rgb), .055);
+  --bg-select: #16181b;          /* açılır liste (tarayıcı varsayılanı beyazdır) */
+  /* Yapışkan üst çubuk: altındaki içerik bulanıklaşarak geçsin diye yarı
+     saydam. Sabit `rgba(13,13,13,.92)` idi ve AÇIK TEMADA KOYU KALIYORDU —
+     üzerindeki koyu yazı 2.41 kontrastla okunmuyordu. */
+  --bg-sticky: rgba(13, 13, 13, .92);
+  /* Terminal/konsol kutusu: sayfadan DAHA koyu bir yüzey. Açık temada
+     "daha koyu" değil "daha nötr" olmalı; sabit #0a0a0a bırakılınca açık
+     temada siyah bir kutu olarak kalıyor ve içindeki koyu yazı okunmuyordu. */
+  /* Kahraman kutusu: yazının altındaki yüzey SABİT olmalı.
+     Eskiden %4.3 saydamdı ve okunabilirlik arkadaki aurora degradesine
+     bağlıydı — ölçülemez ve tema değişince öngörülemez bir kontrast. */
+  --bg-hero: rgba(18, 20, 22, .82);
+  --bg-terminal: #0a0a0a;
+  --bg-track: #333333;           /* anahtar rayı */
+  --bg-knob: #8a8a8a;            /* anahtar topuzu */
+  --dot-off: #4a4a4a;            /* sönük durum noktası */
+  --cmd-bg-start: #06140d;
+  --cmd-bg-mid: #070b09;
+  --cmd-bg-end: #050505;
+  /* Marka degradesinin ikinci durağı ve düğme basılı hâli. Sabit
+     bırakıldıklarında açık temada koyu yeşilden PARLAK yeşile geçen bir
+     degrade oluşuyordu; üzerindeki beyaz yazı parlak uçta okunmuyordu. */
+  --emerald-deep: #00b268;
+  --emerald-press: #00c96a;
+  --danger-hover: #ff7386;
+
+  /* Çizgiler */
+  --line: rgba(var(--tint-rgb), .08);
+  --line-strong: rgba(var(--tint-rgb), .14);
+
+  /* Metin */
+  --text: #ececec;
+  --text-dim: #9a9a9a;
+  /* Ölçüldü: #6b6b6b, panel zemini (#1a1a1a) üzerinde 3.27 kontrast
+     veriyordu — AA eşiği 4.5. Sembol adları ve zaman damgaları gibi
+     "önemsiz" görünen yazılar da okunmak için oradadır. #858585 → 4.70 */
+  --text-faint: #858585;
+
+  /* Vurgu */
+  --emerald: #00e676;
+  --mint: #00f59b;
+  --emerald-soft: rgba(0, 230, 118, .13);
+  --emerald-line: rgba(0, 230, 118, .28);
+  --on-emerald: #06170d;         /* yeşil zemin üzerindeki yazı */
+  --on-danger: #2b0008;          /* kırmızı zemin üzerindeki yazı */
+
+  /* Durum */
+  --danger: #ff5c72;
+  --danger-soft: rgba(255, 92, 114, .13);
+  --warn: #ffb020;
+  --warn-soft: rgba(255, 176, 32, .12);
+  --info: #62b0ff;
+  --info-soft: rgba(98, 176, 255, .12);
+
+  /* Yumuşak zemin (soft) üzerindeki YAZI rengi.
+
+     Ayrı token olmasının sebebi ölçüldü: vurgu renginin kendisi, kendi
+     %12'lik yıkaması üzerinde yeterli kontrast vermiyor. Koyu temada açık
+     pastel, açık temada koyu ton gerekiyor. `.callout` bu tonları SABİT
+     taşıyordu ve açık temada 1.59 kontrastla neredeyse görünmez oluyordu. */
+  --emerald-text: #9ceabd;
+  --danger-text: #f5aab5;
+  --warn-text: #f0cf9a;
+  --info-text: #b9d9ff;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 18px;
+  --mono: "JetBrains Mono", "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* Panel genişlikleri. Kullanıcı sürükleyerek değiştirir ve seçim
+     hatırlanır; buradakiler yalnızca ilk açılış değerleridir. */
+  --rail-w: 296px;
+  --live-w: 380px;
+}
+
+/* ==========================================================================
+   AÇIK TEMA
+
+   Yalnızca renkler değişir; ölçü, yarıçap ve yazı tipi ortaktır. Böylece
+   iki tema arasında yerleşim kaymaz ve bir temada düzgün duran bir ekran
+   diğerinde bozulmaz.
+
+   İki karar açıklama hak ediyor:
+
+   1. Vurgu yeşili AÇIK TEMADA KOYULAŞIR (#00e676 → #017539). Parlak yeşil
+      beyaz zeminde okunmaz: kontrast oranı 1.4'e düşer. Aynı rengi iki
+      zeminde kullanmak "tutarlılık" değil, birinde okunamamaktır.
+
+   2. Gölge siyah değil mavi-gri. Beyaz zeminde saf siyah gölge kirli ve
+      sert görünür; hafif maviye kaçan gölge kâğıt hissi verir.
+   ========================================================================== */
+
+:root[data-theme="light"] {
+  --tint-rgb: 12, 46, 28;
+  --shade-rgb: 14, 65, 38;
+
+  --bg: #f8fffb;
+  --bg-rail: #eef9f2;
+  --bg-raise: #ffffff;
+  --bg-input: #f2fbf5;
+  --bg-hover: rgba(var(--tint-rgb), .045);
+  --bg-select: #ffffff;
+  --bg-sticky: rgba(248, 255, 251, .92);
+  --bg-hero: rgba(255, 255, 255, .82);
+  --bg-terminal: #edf7f0;
+  --bg-track: #b9d9c4;
+  --bg-knob: #ffffff;
+  --dot-off: #7e9988;
+  --cmd-bg-start: #ffffff;
+  --cmd-bg-mid: #f4fff8;
+  --cmd-bg-end: #eaf8ef;
+  --emerald-deep: #015c2d;       /* açık temada degrade KOYULAŞARAK gider */
+  --emerald-press: #015027;
+  --danger-hover: #8f0f27;
+
+  --line: rgba(var(--tint-rgb), .11);
+  --line-strong: rgba(var(--tint-rgb), .20);
+
+  --text: #102018;
+  --text-dim: #475d50;
+  /* Üç yüzeyde de ölçüldü: sayfa (#f7f8fa), panel (#ffffff) ve kenar
+     çubuğu (#eef1f5). En zorlusu kenar çubuğu; #66707c orada 4.44'te
+     kalıyordu — eşiğin bir tık altı, yani "neredeyse" okunuyordu. */
+  --text-faint: #536b5c;
+
+  /* Bu değerler TAHMİN DEĞİL — tarayıcıda ölçüldü.
+
+     Her biri üç senaryoda da WCAG AA (4.5:1) geçiyor: sayfa zemininde,
+     kendi %10-12'lik yıkaması üzerinde ve üzerine beyaz yazı geldiğinde.
+     İlk denemede seçtiğim #00994e üçünde de kalıyordu (3.49 / 3.20 / 3.71);
+     "yeterince koyu görünüyor" demek ölçmenin yerini tutmuyor. */
+  --emerald: #017539;        /* 5.48 Â· 4.89 Â· 5.83 */
+  --mint: #018b44;
+  --emerald-soft: rgba(1, 117, 57, .12);
+  --emerald-line: rgba(1, 117, 57, .34);
+  --emerald-text: #017539;
+  --on-emerald: #ffffff;
+  --on-danger: #ffffff;
+
+  --danger: #b81635;         /* 6.17 Â· 5.52 Â· 6.55 */
+  --danger-soft: rgba(184, 22, 53, .10);
+  --danger-text: #b81635;
+  --warn: #96590a;           /* 5.30 Â· 4.77 Â· 5.63 */
+  --warn-soft: rgba(150, 89, 10, .12);
+  --warn-text: #96590a;
+  --info: #125aad;           /* 6.39 Â· 5.83 Â· 6.79 */
+  --info-soft: rgba(18, 90, 173, .10);
+  --info-text: #125aad;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: clamp(15px, 1.05vw, 16.5px);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Global logo image fix — asla gerilmez, orantı korunur */
+.brand-img, .hero-img, .auth-img {
+  object-fit: contain;
+  aspect-ratio: 1 / 1;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(var(--tint-rgb), .09); border-radius: 20px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(var(--tint-rgb), .18); background-clip: content-box; }
+
+a { color: var(--mint); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--emerald-line); outline-offset: 2px; }
+.input, .select, .textarea, .composer textarea { cursor: text; }
+.btn, .icon-btn, .rail-item, .session-row, .session-more, .profile, .tab, .tool-head, .chip, .choice, .menu-item, .palette-row, .mode-pill { cursor: pointer; }
+.btn:disabled, .send-btn:disabled { cursor: not-allowed; }
+
+.hidden { display: none !important; }
+.spacer { flex: 1; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dim { color: var(--text-dim); }
+.small { font-size: 14.2px; }
+.mono { font-family: var(--mono); }
+.center { text-align: center; }
+.mt { margin-top: 12px; }
+.mb { margin-bottom: 12px; }
+.pos { color: var(--emerald); }
+.neg { color: var(--danger); }
+.neutral { color: var(--text-dim); }
+
+/* ==========================================================================
+   KABUK
+   ========================================================================== */
+
+.shell { display: grid; grid-template-columns: var(--rail-w) 6px 1fr; height: 100vh; gap: 4px; background: var(--bg); }
+.shell.collapsed { grid-template-columns: 0 0 1fr; gap: 0; }
+.shell.collapsed .splitter { display: none; }
+.shell.collapsed .rail { transform: translateX(-100%); }
+/* Kenar çubuğu kapalıyken başlık çubuğunda beliren aç düğmesi.
+   Yüzen kutu DEĞİL: başlığın parçası, bu yüzden hiçbir şeye yapışmaz. */
+/* Kenar çubuğu düğmesi başlıkta tek başına durur; ayrı bir "aç" düğmesi yok. */
+#rail-toggle { margin-right: 4px; }
+.stage { position: relative; background: var(--bg); border-radius: 0; overflow: hidden; }
+.rail { border-radius: 0 12px 12px 0; }
+
+/* ------------------------------- SOL KOLON ------------------------------ */
+
+.rail {
+  background: var(--bg-rail);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding: 10px 10px 8px;
+  gap: 10px;
+  overflow: hidden;
+  transition: transform .18s ease;
+}
+
+.rail-top { display: flex; align-items: center; gap: 4px; padding: 2px 2px 0; }
+
+.icon-btn {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  background: transparent; border: 1px solid transparent; color: var(--text-dim);
+  cursor: pointer; font-size: 17.7px; line-height: 1; font-weight: 500;
+  display: grid; place-items: center; transition: background .14s, color .14s, border-color .14s, transform .08s;
+}
+.icon-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--line); }
+.icon-btn:active { transform: scale(0.96); }
+.icon-btn:focus-visible { border-color: var(--emerald-line); }
+
+.new-btn {
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 14px; border-radius: var(--radius);
+  background: transparent; border: 1px solid var(--line-strong);
+  color: var(--text); cursor: pointer; font-size: 15.9px; font-weight: 500;
+  transition: background .14s, border-color .14s;
+}
+.new-btn:hover { background: var(--emerald-soft); border-color: var(--emerald-line); color: var(--mint); }
+.new-btn .plus {
+  width: 21px; height: 21px; border-radius: 6px; background: var(--emerald);
+  color: var(--on-emerald); display: grid; place-items: center; font-weight: 700; font-size: 15.3px;
+}
+
+.rail-nav { display: flex; flex-direction: column; gap: 1px; }
+
+.rail-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 11px; border-radius: var(--radius-sm);
+  color: var(--text-dim); cursor: pointer; font-size: 15.9px;
+  transition: background .14s, color .14s;
+}
+.rail-item:hover { background: var(--bg-hover); color: var(--text); }
+.rail-item.active { background: var(--bg-raise); color: var(--text); }
+.rail-item .ico { width: 19px; text-align: center; font-size: 15.3px; opacity: .9; }
+
+.rail-scroll { flex: 1; overflow-y: auto; margin: 2px -4px 0; padding: 0 4px; }
+
+.rail-group-title {
+  font-size: 13.0px; color: var(--text-faint); padding: 12px 10px 5px;
+  letter-spacing: .04em; display: flex; align-items: center; gap: 6px;
+}
+
+.session-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 15.3px; color: var(--text-dim);
+  transition: background .14s, color .14s;
+}
+.session-row:hover { background: var(--bg-hover); color: var(--text); }
+.session-row.active { background: var(--bg-raise); color: var(--text); }
+.session-row .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-more {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px;
+  border: none; background: transparent; color: var(--text-faint);
+  cursor: pointer; display: grid; place-items: center; font-size: 16px; line-height: 1;
+  opacity: 0; transition: opacity .14s, background .14s, color .14s;
+}
+.session-row:hover .session-more, .session-row.active .session-more { opacity: 1; }
+.session-more:hover { background: var(--bg-hover); color: var(--text); }
+.more-dots { transform: translateY(-1px); letter-spacing: 1px; }
+.session-menu { animation: fadeIn .12s ease-out; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(4px)} to{opacity:1; transform:none} }
+
+/* Profil (ayarlar buradan) */
+.profile {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 9px; border-radius: var(--radius);
+  cursor: pointer; border: 1px solid transparent;
+  transition: background .14s, border-color .14s;
+}
+.profile:hover { background: var(--bg-hover); border-color: var(--line); }
+.avatar {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--emerald), var(--emerald-deep));
+  color: var(--on-emerald); display: grid; place-items: center; font-weight: 800; font-size: 15.3px;
+}
+.profile-meta { flex: 1; min-width: 0; }
+.profile-name { font-size: 15.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-plan { font-size: 13.0px; color: var(--text-faint); display: flex; align-items: center; gap: 5px; }
+.profile .chev { color: var(--text-faint); font-size: 13.0px; }
+
+/* ------------------------------- ANA ALAN ------------------------------- */
+
+.stage { display: flex; flex-direction: column; min-width: 0; height: 100vh; }
+
+.stage-top {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 20px; border-bottom: 1px solid var(--line);
+  background: var(--bg-sticky); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  flex-shrink: 0; min-height: 58px; margin-left: 2px;
+}
+
+.title-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 11px; border-radius: var(--radius-sm);
+  background: var(--bg-raise); font-size: 15.3px; font-weight: 500;
+}
+.title-chip .chip-ico { color: var(--mint); font-size: 14.2px; }
+.title-chip .chip-tag {
+  /* Yikama uzerinde durdugu icin --text-faint burada 4.13'te kaliyordu. */
+  font-size: 13.0px; color: var(--text-dim); padding: 1px 7px;
+  border-radius: 5px; background: rgba(var(--tint-rgb), .05);
+}
+
+.stage-body { flex: 1; overflow-y: auto; min-height: 0; }
+.stage-body > .page-pad { padding: 24px 28px 48px; max-width: 1600px; }
+
+.only-mobile { display: none; }
+
+/* ==========================================================================
+   SOHBET
+   ========================================================================== */
+
+.chat-wrap { display: flex; flex-direction: column; height: 100%; }
+
+.chat-stream { flex: 1; overflow-y: auto; padding: 16px 20px 8px; }
+.chat-inner { max-width: 780px; margin: 0 auto; }
+
+.msg { margin-bottom: 11px; }
+
+.msg-user {
+  background: var(--bg-raise); border-radius: var(--radius-lg);
+  padding: 11px 15px; width: fit-content; max-width: 88%; margin-left: auto;
+  white-space: pre-wrap; word-break: break-word;
+}
+
+.msg-assistant { display: flex; gap: 12px; }
+.msg-avatar {
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0; margin-top: 1px;
+  background: linear-gradient(135deg, var(--emerald), var(--emerald-deep));
+  color: var(--on-emerald); display: grid; place-items: center; font-weight: 800; font-size: 14.2px;
+}
+.msg-body { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; }
+.msg-body h3 { font-size: 17.1px; margin: 8px 0 4px; color: var(--text); }
+/* Sabit beyazdı: açık temada beyaz zemin üzerinde kayboluyordu. */
+.msg-body b { color: var(--text); }
+.msg-body code {
+  font-family: var(--mono); font-size: 14.8px; background: rgba(var(--tint-rgb), .07);
+  padding: 1.5px 5px; border-radius: 5px;
+}
+.msg-time { font-size: 12.4px; color: var(--text-faint); margin-top: 3px; }
+
+.msg-system {
+  font-size: 14.2px; color: var(--text-faint); text-align: center; padding: 3px 0;
+}
+
+/* Araç adımı — Claude Code'daki "Ran a command" satırı gibi */
+.tool-step { margin: 0 0 8px 38px; max-width: 720px; }
+
+.tool-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 9px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 14.8px; color: var(--text-dim);
+  transition: background .14s;
+}
+.tool-head:hover { background: var(--bg-hover); }
+.tool-head .tool-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--info); flex-shrink: 0; }
+.tool-step.mut .tool-dot { background: var(--warn); }
+.tool-step.err .tool-dot { background: var(--danger); }
+.tool-head .tool-name { color: var(--text); font-weight: 500; }
+.tool-head .tool-sum { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool-head .tool-ms { color: var(--text-faint); font-size: 13.0px; }
+.tool-head .caret { color: var(--text-faint); font-size: 11.8px; }
+
+.tool-body {
+  margin: 4px 0 0 16px; padding: 10px 12px;
+  border-left: 2px solid var(--line-strong); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--bg-raise); font-family: var(--mono); font-size: 13.6px;
+  color: var(--text-dim); max-height: 340px; overflow: auto;
+}
+.tool-body pre { white-space: pre-wrap; word-break: break-word; }
+
+/* Düşünüyor */
+.thinking { display: flex; align-items: center; gap: 9px; color: var(--mint); font-size: 15.3px; margin: 2px 0 8px 38px; }
+.thinking .bars { display: inline-flex; gap: 3px; align-items: flex-end; height: 12px; }
+.thinking .bars i { width: 3px; height: 11px; background: var(--emerald); border-radius: 2px; animation: bar 1s infinite ease-in-out; }
+.thinking .bars i:nth-child(2) { animation-delay: .15s; }
+.thinking .bars i:nth-child(3) { animation-delay: .3s; }
+@keyframes bar { 0%, 100% { transform: scaleY(.35); opacity: .45; } 50% { transform: scaleY(1); opacity: 1; } }
+
+/* ------------------------------- BESTECİ -------------------------------- */
+
+.composer-zone { padding: 0 16px 10px; flex-shrink: 0; }
+.composer {
+  max-width: 780px; margin: 0 auto;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
+  background: var(--bg-raise); overflow: visible;
+  transition: border-color .16s, box-shadow .16s, transform .12s;
+}
+.composer:not([data-state]):focus-within { border-color: var(--emerald-line); box-shadow: 0 0 0 3px var(--emerald-soft), 0 8px 24px rgba(var(--shade-rgb), .28); transform: translateY(-1px); }
+
+.composer textarea {
+  width: 100%; background: transparent; border: none; outline: none; resize: none;
+  padding: 14px 16px 6px; font-size: 16.5px; line-height: 1.6;
+  min-height: 52px; max-height: 220px; caret-color: var(--emerald);
+}
+.composer textarea::placeholder { color: var(--text-faint); }
+
+.composer-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px 9px 12px; font-size: 14.2px; color: var(--text-dim);
+  flex-wrap: wrap;
+}
+/* Besteci çubuğundaki seçiciler command.css'te `.composer-bar .bar-select`
+   altında tanımlanır. Buradaki eski, özgüllüğü daha yüksek kural onu eziyordu
+   ve seçici koyu temada saydam (beyaz) çiziliyordu. */
+
+.mode-pill { cursor: pointer; }
+.btn:disabled, .send-btn:disabled { cursor: not-allowed; }
+
+.hidden { display: none !important; }
+.spacer { flex: 1; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dim { color: var(--text-dim); }
+.small { font-size: 14.2px; }
+.mono { font-family: var(--mono); }
+.center { text-align: center; }
+.mt { margin-top: 12px; }
+.mb { margin-bottom: 12px; }
+.pos { color: var(--emerald); }
+.neg { color: var(--danger); }
+.neutral { color: var(--text-dim); }
+
+/* ==========================================================================
+   KABUK
+   ========================================================================== */
+
+.shell { display: grid; grid-template-columns: var(--rail-w) 6px 1fr; height: 100vh; gap: 4px; background: var(--bg); }
+.shell.collapsed { grid-template-columns: 0 0 1fr; gap: 0; }
+.shell.collapsed .splitter { display: none; }
+.shell.collapsed .rail { transform: translateX(-100%); }
+/* Kenar çubuğu kapalıyken başlık çubuğunda beliren aç düğmesi.
+   Yüzen kutu DEĞİL: başlığın parçası, bu yüzden hiçbir şeye yapışmaz. */
+/* Kenar çubuğu düğmesi başlıkta tek başına durur; ayrı bir "aç" düğmesi yok. */
+#rail-toggle { margin-right: 4px; }
+.stage { position: relative; background: var(--bg); border-radius: 0; overflow: hidden; }
+.rail { border-radius: 0 12px 12px 0; }
+
+/* ------------------------------- SOL KOLON ------------------------------ */
+
+.rail {
+  background: var(--bg-rail);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding: 10px 10px 8px;
+  gap: 10px;
+  overflow: hidden;
+  transition: transform .18s ease;
+}
+
+.rail-top { display: flex; align-items: center; gap: 4px; padding: 2px 2px 0; }
+
+.icon-btn {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  background: transparent; border: 1px solid transparent; color: var(--text-dim);
+  cursor: pointer; font-size: 17.7px; line-height: 1; font-weight: 500;
+  display: grid; place-items: center; transition: background .14s, color .14s, border-color .14s, transform .08s;
+}
+.icon-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--line); }
+.icon-btn:active { transform: scale(0.96); }
+.icon-btn:focus-visible { border-color: var(--emerald-line); }
+
+.new-btn {
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 14px; border-radius: var(--radius);
+  background: transparent; border: 1px solid var(--line-strong);
+  color: var(--text); cursor: pointer; font-size: 15.9px; font-weight: 500;
+  transition: background .14s, border-color .14s;
+}
+.new-btn:hover { background: var(--emerald-soft); border-color: var(--emerald-line); color: var(--mint); }
+.new-btn .plus {
+  width: 21px; height: 21px; border-radius: 6px; background: var(--emerald);
+  color: var(--on-emerald); display: grid; place-items: center; font-weight: 700; font-size: 15.3px;
+}
+
+.rail-nav { display: flex; flex-direction: column; gap: 1px; }
+
+.rail-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 11px; border-radius: var(--radius-sm);
+  color: var(--text-dim); cursor: pointer; font-size: 15.9px;
+  transition: background .14s, color .14s;
+}
+.rail-item:hover { background: var(--bg-hover); color: var(--text); }
+.rail-item.active { background: var(--bg-raise); color: var(--text); }
+.rail-item .ico { width: 19px; text-align: center; font-size: 15.3px; opacity: .9; }
+
+.rail-scroll { flex: 1; overflow-y: auto; margin: 2px -4px 0; padding: 0 4px; }
+
+.rail-group-title {
+  font-size: 13.0px; color: var(--text-faint); padding: 12px 10px 5px;
+  letter-spacing: .04em; display: flex; align-items: center; gap: 6px;
+}
+
+.session-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 15.3px; color: var(--text-dim);
+  transition: background .14s, color .14s;
+}
+.session-row:hover { background: var(--bg-hover); color: var(--text); }
+.session-row.active { background: var(--bg-raise); color: var(--text); }
+.session-row .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-more {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px;
+  border: none; background: transparent; color: var(--text-faint);
+  cursor: pointer; display: grid; place-items: center; font-size: 16px; line-height: 1;
+  opacity: 0; transition: opacity .14s, background .14s, color .14s;
+}
+.session-row:hover .session-more, .session-row.active .session-more { opacity: 1; }
+.session-more:hover { background: var(--bg-hover); color: var(--text); }
+.more-dots { transform: translateY(-1px); letter-spacing: 1px; }
+.session-menu { animation: fadeIn .12s ease-out; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(4px)} to{opacity:1; transform:none} }
+
+/* Profil (ayarlar buradan) */
+.profile {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 9px; border-radius: var(--radius);
+  cursor: pointer; border: 1px solid transparent;
+  transition: background .14s, border-color .14s;
+}
+.profile:hover { background: var(--bg-hover); border-color: var(--line); }
+.avatar {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--emerald), var(--emerald-deep));
+  color: var(--on-emerald); display: grid; place-items: center; font-weight: 800; font-size: 15.3px;
+}
+.profile-meta { flex: 1; min-width: 0; }
+.profile-name { font-size: 15.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-plan { font-size: 13.0px; color: var(--text-faint); display: flex; align-items: center; gap: 5px; }
+.profile .chev { color: var(--text-faint); font-size: 13.0px; }
+
+/* ------------------------------- ANA ALAN ------------------------------- */
+
+.stage { display: flex; flex-direction: column; min-width: 0; height: 100vh; }
+
+.stage-top {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 20px; border-bottom: 1px solid var(--line);
+  background: var(--bg-sticky); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  flex-shrink: 0; min-height: 58px; margin-left: 2px;
+}
+
+.title-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 11px; border-radius: var(--radius-sm);
+  background: var(--bg-raise); font-size: 15.3px; font-weight: 500;
+}
+.title-chip .chip-ico { color: var(--mint); font-size: 14.2px; }
+.title-chip .chip-tag {
+  /* Yikama uzerinde durdugu icin --text-faint burada 4.13'te kaliyordu. */
+  font-size: 13.0px; color: var(--text-dim); padding: 1px 7px;
+  border-radius: 5px; background: rgba(var(--tint-rgb), .05);
+}
+
+.stage-body { flex: 1; overflow-y: auto; min-height: 0; }
+.stage-body > .page-pad { padding: 24px 28px 48px; max-width: 1600px; }
+
+.only-mobile { display: none; }
+
+/* ==========================================================================
+   SOHBET
+   ========================================================================== */
+
+.chat-wrap { display: flex; flex-direction: column; height: 100%; }
+
+.chat-stream { flex: 1; overflow-y: auto; padding: 16px 20px 8px; }
+.chat-inner { max-width: 780px; margin: 0 auto; }
+
+.msg { margin-bottom: 11px; }
+
+.msg-user {
+  background: var(--bg-raise); border-radius: var(--radius-lg);
+  padding: 11px 15px; width: fit-content; max-width: 88%; margin-left: auto;
+  white-space: pre-wrap; word-break: break-word;
+}
+
+.msg-assistant { display: flex; gap: 12px; }
+.msg-avatar {
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0; margin-top: 1px;
+  background: linear-gradient(135deg, var(--emerald), var(--emerald-deep));
+  color: var(--on-emerald); display: grid; place-items: center; font-weight: 800; font-size: 14.2px;
+}
+.msg-body { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; }
+.msg-body h3 { font-size: 17.1px; margin: 8px 0 4px; color: var(--text); }
+/* Sabit beyazdı: açık temada beyaz zemin üzerinde kayboluyordu. */
+.msg-body b { color: var(--text); }
+.msg-body code {
+  font-family: var(--mono); font-size: 14.8px; background: rgba(var(--tint-rgb), .07);
+  padding: 1.5px 5px; border-radius: 5px;
+}
+.msg-time { font-size: 12.4px; color: var(--text-faint); margin-top: 3px; }
+
+.msg-system {
+  font-size: 14.2px; color: var(--text-faint); text-align: center; padding: 3px 0;
+}
+
+/* Araç adımı — Claude Code'daki "Ran a command" satırı gibi */
+.tool-step { margin: 0 0 8px 38px; max-width: 720px; }
+
+.tool-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 9px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 14.8px; color: var(--text-dim);
+  transition: background .14s;
+}
+.tool-head:hover { background: var(--bg-hover); }
+.tool-head .tool-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--info); flex-shrink: 0; }
+.tool-step.mut .tool-dot { background: var(--warn); }
+.tool-step.err .tool-dot { background: var(--danger); }
+.tool-head .tool-name { color: var(--text); font-weight: 500; }
+.tool-head .tool-sum { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool-head .tool-ms { color: var(--text-faint); font-size: 13.0px; }
+.tool-head .caret { color: var(--text-faint); font-size: 11.8px; }
+
+.tool-body {
+  margin: 4px 0 0 16px; padding: 10px 12px;
+  border-left: 2px solid var(--line-strong); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--bg-raise); font-family: var(--mono); font-size: 13.6px;
+  color: var(--text-dim); max-height: 340px; overflow: auto;
+}
+.tool-body pre { white-space: pre-wrap; word-break: break-word; }
+
+/* Düşünüyor */
+.thinking { display: flex; align-items: center; gap: 9px; color: var(--mint); font-size: 15.3px; margin: 2px 0 8px 38px; }
+.thinking .bars { display: inline-flex; gap: 3px; align-items: flex-end; height: 12px; }
+.thinking .bars i { width: 3px; height: 11px; background: var(--emerald); border-radius: 2px; animation: bar 1s infinite ease-in-out; }
+.thinking .bars i:nth-child(2) { animation-delay: .15s; }
+.thinking .bars i:nth-child(3) { animation-delay: .3s; }
+@keyframes bar { 0%, 100% { transform: scaleY(.35); opacity: .45; } 50% { transform: scaleY(1); opacity: 1; } }
+
+/* ------------------------------- BESTECİ -------------------------------- */
+
+.composer-zone { padding: 0 16px 10px; flex-shrink: 0; }
+.composer {
+  max-width: 780px; margin: 0 auto;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
+  background: var(--bg-raise); overflow: visible;
+  transition: border-color .16s, box-shadow .16s, transform .12s;
+}
+.composer:not([data-state]):focus-within { border-color: var(--emerald-line); box-shadow: 0 0 0 3px var(--emerald-soft), 0 8px 24px rgba(var(--shade-rgb), .28); transform: translateY(-1px); }
+
+.composer textarea {
+  width: 100%; background: transparent; border: none; outline: none; resize: none;
+  padding: 14px 16px 6px; font-size: 16.5px; line-height: 1.6;
+  min-height: 52px; max-height: 220px; caret-color: var(--emerald);
+}
+.composer textarea::placeholder { color: var(--text-faint); }
+
+.composer-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px 9px 12px; font-size: 14.2px; color: var(--text-dim);
+  flex-wrap: wrap;
+}
+/* Seçici ve otonom anahtarı stilleri: command.css (tek kaynak). */
+
+.send-btn {
+  width: 34px; height: 34px; border-radius: 10px; border: none; cursor: pointer;
+  background: var(--emerald); color: var(--on-emerald); font-size: 17.7px; font-weight: 700;
+  display: grid; place-items: center; transition: opacity .14s, transform .1s, box-shadow .14s;
+  box-shadow: 0 2px 8px rgba(0,230,118,.28);
+}
+.send-btn:hover { opacity: .92; box-shadow: 0 4px 14px rgba(0,230,118,.34); }
+.send-btn:active { transform: translateY(1px) scale(0.98); }
+.send-btn:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+
+.chips { display: flex; gap: 7px; flex-wrap: wrap; max-width: 780px; margin: 0 auto 9px; }
+.chip {
+  padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 14.8px;
+  border: 1px solid var(--line); background: var(--bg-raise); color: var(--text-dim);
+  transition: border-color .14s, color .14s, background .14s; white-space: nowrap;
+}
+.chip:hover { border-color: var(--emerald-line); color: var(--mint); background: var(--emerald-soft); }
+
+/* Karşılama */
+.welcome { max-width: 640px; margin: 8vh auto 0; text-align: center; }
+.welcome .mark {
+  width: 54px; height: 54px; border-radius: 16px; margin: 0 auto 16px;
+  background: linear-gradient(135deg, var(--emerald), var(--emerald-deep));
+  color: var(--on-emerald); display: grid; place-items: center; font-size: 28.3px; font-weight: 800;
+}
+.welcome h2 { font-size: 24.8px; font-weight: 650; margin-bottom: 8px; }
+.welcome p { color: var(--text-dim); line-height: 1.7; }
+
+/* ==========================================================================
+   ORTAK BİLEŞENLER (panel sayfaları)
+   ========================================================================== */
+
+.panel {
+  background: var(--bg-raise); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 20px;
+  box-shadow: 0 1px 0 rgba(var(--tint-rgb), .03) inset, 0 8px 24px rgba(var(--shade-rgb), .22);
+}
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+.panel-title { font-weight: 600; font-size: 15.9px; }
+.panel-hint { font-size: 13.6px; color: var(--text-faint); }
+
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.stat { position: relative; overflow: hidden; }
+.stat-label { font-size: 13.0px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .07em; }
+.stat-value { font-size: 28.3px; font-weight: 650; font-family: var(--mono); margin-top: 5px; }
+.stat-foot { font-size: 13.6px; color: var(--text-faint); margin-top: 3px; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2.5px 9px; border-radius: 999px; font-size: 13.0px; font-weight: 500;
+  border: 1px solid var(--line); background: rgba(var(--tint-rgb), .04); color: var(--text-dim);
+  white-space: nowrap;
+}
+/* Rozet yazısı, kendi yumuşak zemininin üzerinde durur; bu yüzden vurgu
+   renginin KENDİSİ değil, o iş için ölçülmüş `-text` jetonu kullanılır.
+   `--mint` ile 3.69'da kalıyordu. Kenar renkleri de sabit koyu-tema
+   değerleriydi; artık jetondan geliyor. */
+.badge-green { background: var(--emerald-soft); color: var(--emerald-text);
+               border-color: var(--emerald-line); }
+.badge-red { background: var(--danger-soft); color: var(--danger-text);
+             border-color: var(--danger); }
+.badge-amber { background: var(--warn-soft); color: var(--warn-text);
+               border-color: var(--warn); }
+.badge-blue { background: var(--info-soft); color: var(--info-text);
+              border-color: var(--info); }
+.badge-slate { }
+
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.dot-live { background: var(--emerald); animation: pulse 2s infinite; }
+.dot-off { background: var(--dot-off); }
+.dot-lock { background: var(--danger); }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, .5); }
+  70% { box-shadow: 0 0 0 7px rgba(0, 230, 118, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 38px; padding: 9.5px 17px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong); background: transparent;
+  color: var(--text); cursor: pointer; font-weight: 500; font-size: 15.3px;
+  line-height: 1; letter-spacing: -.01em;
+  transition: background .14s, border-color .14s, transform .08s, box-shadow .14s; white-space: nowrap;
+  user-select: none;
+}
+.btn:hover { background: var(--bg-hover); border-color: var(--line-strong); }
+.btn:active { transform: translateY(0.5px) scale(0.99); }
+.btn:disabled { opacity: .42; cursor: not-allowed; transform: none; }
+.btn-primary { background: var(--emerald); color: var(--on-emerald); border-color: transparent; font-weight: 600; box-shadow: 0 1px 0 rgba(var(--shade-rgb), .25); }
+.btn-primary:hover { background: var(--mint); box-shadow: 0 2px 10px rgba(0,230,118,.22); }
+.btn-primary:active { background: var(--emerald-press); }
+.btn-danger { border-color: rgba(255, 92, 114, .35); color: var(--danger); }
+.btn-danger:hover { background: var(--danger-soft); border-color: rgba(255,92,114,.5); }
+.btn-ghost { border-color: transparent; color: var(--text-dim); }
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text); }
+.btn-sm { min-height: 32px; padding: 6.5px 12px; font-size: 14.2px; gap: 6px; }
+.btn-block { width: 100%; }
+
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.label { font-size: 13.6px; color: var(--text-dim); font-weight: 500; }
+.hint { font-size: 13.6px; color: var(--text-faint); line-height: 1.5; }
+
+.input, .select, .textarea {
+  background: var(--bg-input); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 11px 13px; width: 100%; font-size: 15.3px;
+  transition: border-color .14s, box-shadow .14s;
+}
+.input:focus, .select:focus, .textarea:focus {
+  outline: none; border-color: var(--emerald-line); box-shadow: 0 0 0 3px var(--emerald-soft);
+}
+.textarea { min-height: 84px; resize: vertical; font-family: var(--mono); font-size: 14.2px; }
+.select option { background: var(--bg-raise); }
+
+.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.switch input { display: none; }
+.switch .track {
+  width: 36px; height: 20px; border-radius: 999px; background: var(--bg-track);
+  position: relative; transition: background .18s;
+}
+.switch .track::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+  border-radius: 50%; background: var(--bg-knob); transition: transform .18s, background .18s;
+}
+.switch input:checked + .track { background: var(--emerald-soft); }
+.switch input:checked + .track::after { transform: translateX(16px); background: var(--emerald); }
+
+.table { width: 100%; border-collapse: collapse; font-size: 14.8px; }
+.table th {
+  text-align: left; padding: 8px 9px; color: var(--text-faint);
+  font-weight: 500; font-size: 12.4px; text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid var(--line);
+}
+.table td { padding: 9px; border-bottom: 1px solid rgba(var(--tint-rgb), .04); }
+.table tbody tr:hover { background: var(--bg-hover); }
+.table .num { font-family: var(--mono); text-align: right; }
+
+.terminal {
+  background: var(--bg-terminal); border: 1px solid var(--line); border-radius: var(--radius);
+  font-family: var(--mono); font-size: 13.6px; line-height: 1.7;
+  padding: 11px 13px; height: 320px; overflow-y: auto;
+}
+.log-line { display: flex; gap: 9px; padding-left: 8px; border-left: 2px solid transparent; }
+.log-ts { color: var(--text-faint); flex-shrink: 0; }
+.log-cat { flex-shrink: 0; width: 50px; font-size: 11.8px; opacity: .7; text-transform: uppercase; }
+.log-msg { flex: 1; word-break: break-word; }
+.log-info { border-left-color: var(--line-strong); color: var(--text-dim); }
+.log-success { border-left-color: var(--emerald); color: var(--emerald-text); }
+.log-warn { border-left-color: var(--warn); color: var(--warn-text); }
+.log-error { border-left-color: var(--danger); color: var(--danger-text); }
+.log-trade { border-left-color: var(--mint); color: var(--mint); font-weight: 600; }
+
+.chart-wrap { position: relative; width: 100%; height: 400px; }
+.chart-wrap canvas { width: 100%; height: 100%; display: block; }
+.chart-tooltip {
+  position: absolute; pointer-events: none; z-index: 5; display: none;
+  background: var(--bg-raise); border: 1px solid var(--line-strong);
+  border-radius: 8px; padding: 8px 10px; font-family: var(--mono); font-size: 13.0px; white-space: pre;
+}
+.chart-legend { display: flex; gap: 13px; flex-wrap: wrap; font-size: 13.0px; color: var(--text-faint); }
+
+.choice {
+  padding: 13px 15px; border-radius: var(--radius); cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg-input);
+  transition: border-color .14s, background .14s, transform .12s, box-shadow .14s;
+}
+.choice:hover { border-color: var(--line-strong); background: var(--bg-hover); transform: translateY(-1px); }
+.choice.selected { border-color: var(--emerald-line); background: var(--emerald-soft); box-shadow: 0 0 0 2px var(--emerald-soft), 0 4px 16px rgba(var(--shade-rgb), .28); transform: none; }
+.choice-title { font-weight: 600; font-size: 15.3px; }
+.choice-desc { font-size: 13.6px; color: var(--text-dim); margin-top: 3px; }
+
+.callout {
+  border-left: 2px solid var(--warn); background: var(--warn-soft);
+  padding: 10px 13px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 14.8px; color: var(--warn-text); line-height: 1.6;
+}
+.callout.green { border-color: var(--emerald); background: var(--emerald-soft);
+                 color: var(--emerald-text); }
+.callout.red { border-color: var(--danger); background: var(--danger-soft);
+               color: var(--danger-text); }
+
+.empty { text-align: center; padding: 44px 20px; color: var(--text-faint); }
+.empty .big { font-size: 40.1px; margin-bottom: 10px; opacity: .4; }
+
+.steps { display: flex; gap: 9px; margin-bottom: 18px; }
+.step { flex: 1; padding: 11px; border-radius: var(--radius); background: var(--bg-input); border: 1px solid var(--line); }
+.step.active { border-color: var(--emerald-line); background: var(--emerald-soft); }
+.step-num { font-family: var(--mono); font-size: 12.4px; color: var(--mint); }
+.step-title { font-weight: 600; font-size: 14.8px; margin-top: 2px; }
+
+.tabs { display: flex; gap: 3px; background: var(--bg-input); padding: 3px; border-radius: var(--radius-sm); margin-bottom: 16px; }
+.tab { flex: 1; text-align: center; padding: 7px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14.8px; color: var(--text-dim); }
+.tab.active { background: var(--bg-raise); color: var(--text); }
+
+/* ==========================================================================
+   MODAL / MENÜ / BİLDİRİM
+   ========================================================================== */
+
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(var(--shade-rgb), .68);
+  backdrop-filter: blur(4px); display: grid; place-items: center; z-index: 90; padding: 20px;
+}
+.modal { width: min(720px, 100%); max-height: 88vh; overflow-y: auto; }
+
+.menu {
+  position: fixed; z-index: 95; min-width: 240px; padding: 6px;
+  background: var(--bg-raise); border: 1px solid var(--line-strong);
+  border-radius: var(--radius); box-shadow: 0 16px 40px rgba(var(--shade-rgb), .55);
+}
+.menu-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border-radius: var(--radius-sm); cursor: pointer; font-size: 15.3px; color: var(--text-dim);
+}
+.menu-item:hover { background: var(--bg-hover); color: var(--text); }
+.menu-sep { height: 1px; background: var(--line); margin: 5px 2px; }
+.menu-head { padding: 8px 10px 4px; font-size: 13.0px; color: var(--text-faint); }
+
+.toasts { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 9px; z-index: 120; }
+.toast {
+  min-width: 250px; max-width: 380px; padding: 11px 14px; border-radius: var(--radius);
+  background: var(--bg-raise); border: 1px solid var(--line-strong);
+  box-shadow: 0 12px 30px rgba(var(--shade-rgb), .5); font-size: 15.3px;
+  animation: slideIn .2s ease-out;
+}
+.toast.ok { border-color: var(--emerald-line); }
+.toast.err { border-color: rgba(255, 92, 114, .4); }
+@keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ==========================================================================
+   GİRİŞ EKRANI
+   ========================================================================== */
+
+.auth-wrap {
+  height: 100vh; display: grid; place-items: center; padding: 24px; overflow-y: auto;
+  background:
+    radial-gradient(ellipse 700px 420px at 50% 0%, var(--emerald-soft), transparent 70%),
+    radial-gradient(ellipse 600px 380px at 50% 100%, var(--emerald-soft), transparent 70%),
+    var(--bg);
+}
+.auth-card { width: min(420px, 100%); }
+.auth-logo { text-align: center; margin-bottom: 24px; }
+.auth-logo .mark {
+  width: 58px; height: 58px; border-radius: 17px; margin: 0 auto 14px;
+  background: linear-gradient(135deg, var(--emerald), var(--emerald-deep));
+  display: grid; place-items: center; font-size: 29.5px; font-weight: 800; color: var(--on-emerald);
+}
+
+/* ==========================================================================
+   DUYARLI
+   ========================================================================== */
+
+@media (max-width: 1100px) {
+  .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  /* Mobil çekmece: konum tabanlı (transform bileşimi sorunlarına kapalı). */
+  .rail {
+    position: fixed; top: 0; bottom: 0; left: -100%; right: auto;
+    width: 82vw; max-width: 300px; z-index: 80;
+    transform: none;
+    transition: left .2s ease;
+    box-shadow: 0 0 40px rgba(var(--shade-rgb), .6);
+  }
+  .shell.rail-open .rail { left: 0; }
+
+  /* Menü açıkken arka planı karart ve dışına tıklamayı yakala */
+  .shell.rail-open::after {
+    content: ""; position: fixed; inset: 0; z-index: 70;
+    background: rgba(var(--shade-rgb), .55);
+  }
+  .only-mobile { display: grid; }
+  .g4, .g3, .g2 { grid-template-columns: minmax(0, 1fr); }
+  .tool-step, .thinking { margin-left: 0; }
+  .stage-body > .page-pad { padding: 16px 14px 40px; }
+  .chart-wrap { height: 300px; }
+}
+
+/* ==========================================================================
+   IKON SISTEMI
+   ========================================================================== */
+
+.ico { display: block; flex-shrink: 0; }
+.ico-slot, .row-ico, .tool-ico, .chip-ico, .plus, .chev {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.icon-btn .ico { margin: 0 auto; }
+.btn .ico { margin-right: -2px; }
+
+.rail-item .ico-slot { width: 18px; color: currentColor; opacity: .85; }
+.rail-item.active .ico-slot { opacity: 1; }
+.row-ico { color: var(--text-dim); }
+
+/* Marka */
+.rail-top .brand { display: flex; align-items: center; gap: 8px; padding-left: 4px; }
+.brand-mark { color: var(--emerald); display: inline-flex; }
+.brand-text {
+  font-size: 14.8px; font-weight: 700; letter-spacing: .16em; color: var(--text);
+}
+.shell.collapsed .brand-text { display: none; }
+
+.auth-logo .mark { color: var(--on-emerald); }
+.auth-logo .mark .ico { width: 28px; height: 28px; }
+.auth-name { font-size: 21.2px; font-weight: 800; letter-spacing: .14em; }
+
+/* Yukleniyor */
+.spinner {
+  width: 22px; height: 22px; margin: 0 auto 12px;
+  border: 2px solid rgba(var(--tint-rgb), .12);
+  border-top-color: var(--emerald);
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Guvenlik seridi */
+.safety-strip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 9px; margin-bottom: 6px; border-radius: var(--radius-sm);
+  background: var(--danger-soft); border: 1px solid rgba(255, 92, 114, .3);
+  color: var(--danger); font-size: 13.6px; cursor: pointer;
+}
+.safety-strip.warn { background: var(--warn-soft); border-color: rgba(255,176,32,.3); color: var(--warn); }
+.safety-strip.live { background: var(--emerald-soft); border-color: var(--emerald-line); color: var(--mint); }
+
+.rail-foot { margin-top: auto; }
+.session-row .row-flag { color: var(--mint); font-size: 17.7px; line-height: 1; }
+.chat-wrap .msg-avatar .ico { color: var(--on-emerald); }
+.tool-head .tool-ico { color: var(--info); }
+.tool-step.mut .tool-head .tool-ico { color: var(--warn); }
+.tool-step.err .tool-head .tool-ico { color: var(--danger); }
+.tool-head .caret { display: inline-flex; color: var(--text-faint); }
+
+.welcome .mark .ico { width: 26px; height: 26px; color: var(--on-emerald); }
+
+/* ==========================================================================
+   KOMUT PALETI
+   ========================================================================== */
+
+.palette-backdrop {
+  position: fixed; inset: 0; z-index: 100; padding: 12vh 20px 20px;
+  background: rgba(var(--shade-rgb), .6); backdrop-filter: blur(3px);
+  display: flex; justify-content: center; align-items: flex-start;
+}
+
+.palette {
+  width: min(620px, 100%);
+  background: var(--bg-raise); border: 1px solid var(--line-strong);
+  border-radius: var(--radius); box-shadow: 0 24px 60px rgba(var(--shade-rgb), .6);
+  overflow: hidden;
+}
+
+.palette-input {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 15px; border-bottom: 1px solid var(--line); color: var(--text-faint);
+}
+.palette-input input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-size: 17.7px; color: var(--text);
+}
+.palette-input input::placeholder { color: var(--text-faint); }
+
+kbd {
+  font-family: var(--mono); font-size: 12.4px; padding: 2px 6px;
+  border-radius: 5px; border: 1px solid var(--line-strong);
+  background: rgba(var(--tint-rgb), .04); color: var(--text-faint);
+}
+
+.palette-list { max-height: 46vh; overflow-y: auto; padding: 6px; }
+.palette-group {
+  font-size: 12.4px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-faint); padding: 9px 10px 4px;
+}
+.palette-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 15.9px;
+}
+.palette-row.active { background: var(--bg-hover); }
+.palette-row.danger .palette-ico { color: var(--danger); }
+.palette-ico { color: var(--text-dim); display: inline-flex; }
+.palette-label { flex: 1; }
+.palette-hint { font-size: 13.6px; color: var(--text-faint); }
+.palette-empty { padding: 26px; text-align: center; color: var(--text-faint); font-size: 15.3px; }
+
+.palette-foot {
+  display: flex; gap: 16px; padding: 9px 15px;
+  border-top: 1px solid var(--line); font-size: 13.0px; color: var(--text-faint);
+}
+.palette-foot span { display: inline-flex; align-items: center; gap: 4px; }
+
+.code-block {
+  background: var(--bg-terminal); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 11px 13px;
+  font-family: var(--mono); font-size: 13.6px; line-height: 1.7;
+  color: var(--mint); white-space: pre-wrap; word-break: break-all;
+  max-height: 160px; overflow: auto;
+}

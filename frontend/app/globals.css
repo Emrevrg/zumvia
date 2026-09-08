@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body { height: 100%; }
+  body {
+    @apply bg-void text-[#e6f1ea] font-sans antialiased;
+    background-image: theme("backgroundImage.grid-glow");
+  }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { @apply bg-slate-850 rounded-full; }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-white/10 bg-gradient-to-br from-raise/80 to-panel/90
+           p-5 shadow-panel backdrop-blur-md;
+  }
+  .stat-label { @apply text-[11px] uppercase tracking-widest text-slate-400; }
+  .stat-value { @apply mt-1.5 font-mono text-2xl font-bold tracking-tight; }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-white/15
+           bg-white/5 px-4 py-2 text-sm font-semibold transition
+           hover:border-white/30 hover:bg-white/10 disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply border-transparent bg-gradient-to-br from-emerald to-[#00c261] text-[#04140b]
+           shadow-glow hover:from-emerald-mint hover:to-emerald;
+  }
+  .btn-danger { @apply border-danger/30 bg-danger/10 text-danger hover:bg-danger/20; }
+  .input {
+    @apply w-full rounded-lg border border-white/15 bg-[#0e1622] px-3 py-2.5 text-sm
+           outline-none transition focus:border-emerald focus:ring-2 focus:ring-emerald/20;
+  }
+  .label { @apply text-[11.5px] font-semibold tracking-wide text-slate-400; }
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5
+           text-[11px] font-semibold;
+  }
+  .badge-green { @apply border-emerald/25 bg-emerald/10 text-emerald-mint; }
+  .badge-red { @apply border-danger/30 bg-danger/10 text-danger; }
+  .badge-amber { @apply border-warn/30 bg-warn/10 text-warn; }
+  .badge-slate { @apply border-white/15 bg-white/5 text-slate-400; }
+  .terminal {
+    @apply h-[340px] overflow-y-auto rounded-2xl border border-emerald/15 bg-black/40
+           p-3 font-mono text-[11.5px] leading-relaxed;
+  }
+}

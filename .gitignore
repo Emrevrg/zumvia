@@ -1,0 +1,47 @@
+# --- Sirlar (ASLA commit etmeyin) ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# --- Veritabani ---
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# --- Node / Next.js ---
+next-env.d.ts
+.env.local
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-error.log*
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Uretilen ciktilar ---
+reports/
+KILL_SWITCH
+
+# --- Gecici ---
+*.log
+smoke.py

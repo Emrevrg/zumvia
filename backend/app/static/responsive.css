@@ -1,0 +1,219 @@
+/* ==========================================================================
+   ZUMVIA — KARŞILAMA EKRANI + DUYARLI DÜZEN
+   styles.css'ten SONRA yüklenir; oradaki kuralları bilinçli olarak ezer.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Marka işareti: logo artık renkli SVG, arkasındaki yeşil kutu kaldırıldı
+   -------------------------------------------------------------------------- */
+
+.auth-logo .mark,
+.welcome .mark {
+  width: auto; height: auto; border-radius: 0;
+  background: none; color: inherit;
+  display: grid; place-items: center;
+}
+.auth-logo .mark { margin: 0 auto 14px; }
+.auth-logo .mark img { width: clamp(180px, 42vw, 240px); height: auto; }
+.welcome .mark { margin: 0 auto 18px; }
+.welcome .mark svg, .welcome .mark img { width: 112px; height: 112px; }
+
+/* Logonun etrafında yumuşak zümrüt hâle */
+.auth-logo .mark, .welcome .mark { position: relative; }
+.auth-logo .mark::after,
+.welcome .mark::after {
+  content: ""; position: absolute; inset: -26%;
+  background: radial-gradient(circle, var(--emerald-soft), transparent 68%);
+  pointer-events: none; z-index: -1;
+}
+
+/* --------------------------------------------------------------------------
+   KARŞILAMA EKRANI
+   -------------------------------------------------------------------------- */
+
+.welcome {
+  max-width: 660px; margin: clamp(24px, 7vh, 88px) auto 0;
+  text-align: center; padding: 0 4px;
+}
+
+.welcome h2 {
+  font-size: clamp(22px, 3.4vw, 30px); font-weight: 640;
+  letter-spacing: -.015em; margin-bottom: 10px; color: var(--text);
+}
+
+.welcome .welcome-sub {
+  color: var(--text-dim); font-size: 16.5px; line-height: 1.6; margin: 0;
+}
+
+/* Somut sistem gerçekleri — pazarlama cümlesi değil, ölçülebilir durum */
+.welcome-facts {
+  margin-top: 26px;
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  text-align: left;
+}
+
+.wfact {
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 12px; border-radius: var(--radius-sm);
+  background: var(--bg-raise); border: 1px solid var(--line);
+  min-width: 0;
+}
+.wfact-ico { color: var(--mint); flex-shrink: 0; }
+.wfact-k { font-size: 12.4px; color: var(--text-faint); letter-spacing: .04em; }
+.wfact-v {
+  font-size: 14.8px; color: var(--text); font-weight: 550;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Anahtar yoksa gösterilen tek adımlık kapı */
+.welcome-gate {
+  margin-top: 20px; text-align: left;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 14px 15px; border-radius: var(--radius-sm);
+  background: var(--emerald-soft); border: 1px solid var(--emerald-line);
+  font-size: 14.8px; line-height: 1.6; color: var(--text-dim);
+}
+.welcome-gate > div { flex: 1 1 260px; min-width: 0; }
+.welcome-gate b { color: var(--text); }
+.welcome-gate .btn { flex-shrink: 0; }
+
+/* --------------------------------------------------------------------------
+   BAŞLIK ÇUBUĞU — dar ekranda eylemler alta düşmez, kaydırılır
+   -------------------------------------------------------------------------- */
+
+.stage-top { flex-wrap: nowrap; min-width: 0; }
+.stage-top .title-chip { min-width: 0; }
+.stage-top .title-chip > span:not(.chip-ico) {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#page-actions {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0; overflow-x: auto; scrollbar-width: none;
+}
+#page-actions::-webkit-scrollbar { display: none; }
+
+/* ==========================================================================
+   ARA BOYUT — dizüstü / küçük pencere (≤ 1180px)
+   ========================================================================== */
+
+@media (max-width: 1180px) {
+  .welcome-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ==========================================================================
+   TABLET (≤ 900px)
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .stage-body > .page-pad { padding: 18px 18px 40px; }
+  .composer-zone { padding: 0 14px 12px; }
+  .chart-wrap { height: 320px; }
+
+  /* Modal artık ekranı taşırmaz */
+  .modal { width: min(560px, calc(100vw - 28px)); max-height: 88vh; }
+}
+
+/* ==========================================================================
+   MOBİL / DAR EKRAN (≤ 900px)
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  /* Başlık: iki satır — üstte kimlik, altta eylemler (yatay kaydırmalı) */
+  .stage-top {
+    flex-wrap: wrap; row-gap: 8px; padding: 8px 10px;
+    position: sticky; top: 0; z-index: 30;
+  }
+  .stage-top .spacer { display: none; }
+  .stage-top #open-settings { margin-left: auto; }
+  #page-actions {
+    order: 10; flex-basis: 100%;
+    padding-bottom: 2px;
+  }
+  #page-actions:empty { display: none; }
+  #page-actions .btn { flex-shrink: 0; }
+
+  .title-chip { flex: 1 1 auto; max-width: calc(100% - 96px); }
+  .title-chip .chip-tag { display: none; }
+
+  .welcome { margin-top: 18px; }
+  .welcome-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+
+  /* Tablolar taşmasın: panelin İÇİNDE yatay kaysın (kırpılmasın) */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .panel > table {
+    display: block; width: 100%;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+  .panel > table thead, .panel > table tbody { display: table; width: 100%; min-width: 520px; }
+
+  /* Metrik kartları tek sütuna değil, ikişerli — ekran boş kalmasın */
+  .g4, .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g2 { grid-template-columns: minmax(0, 1fr); }
+
+  /* Form satırları alt alta */
+  .row-2, .form-row { grid-template-columns: minmax(0, 1fr); }
+
+  /* Bildirimler ekranı kaplamasın */
+  .toasts { left: 10px; right: 10px; bottom: 10px; }
+  .toast { width: auto; }
+
+  /* Komut paleti üstte açılsın (klavye alanı için) */
+  .palette-backdrop { padding: 6vh 12px 12px; }
+}
+
+/* ==========================================================================
+   KÜÇÜK TELEFON (≤ 420px)
+   ========================================================================== */
+
+@media (max-width: 420px) {
+  .welcome-facts { grid-template-columns: 1fr; }
+  .g4, .g3 { grid-template-columns: 1fr; }
+  .stage-body > .page-pad { padding: 14px 12px 36px; }
+  .composer-zone { padding: 0 10px 10px; }
+  .chips { gap: 6px; }
+  .chip { font-size: 13.6px; }
+  .btn { padding: 8px 12px; }
+  .chart-wrap { height: 260px; }
+}
+
+/* ==========================================================================
+   ALÇAK EKRAN — yatay telefon
+   ========================================================================== */
+
+@media (max-height: 560px) {
+  .welcome { margin-top: 12px; }
+  .welcome .mark svg, .welcome .mark img { width: 72px; height: 72px; }
+  .welcome-facts { margin-top: 14px; }
+  .auth-logo .mark img { width: 150px; height: auto; }
+  .auth-logo { margin-bottom: 14px; }
+}
+
+/* ==========================================================================
+   DOKUNMATİK — hedef alanları en az 40px
+   ========================================================================== */
+
+@media (hover: none) and (pointer: coarse) {
+  .icon-btn { min-width: 38px; min-height: 38px; }
+  .rail-item { padding-top: 10px; padding-bottom: 10px; }
+  .menu-item { padding-top: 10px; padding-bottom: 10px; }
+  .session-row { padding-top: 10px; padding-bottom: 10px; }
+}
+
+/* Hareket azaltma tercihi */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* iOS güvenli alan (çentik / ev çubuğu) */
+@supports (padding: max(0px)) {
+  .composer-zone { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .rail { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+}
+
+/* Mobilde kenar çubuğu zaten çekmece: "daralt" düğmesi anlamsız, gizlenir.
+   Böylece her ekran boyutunda menü için TEK düğme kalır. */
+@media (max-width: 900px) {
+  #rail-toggle { display: none; }
+}
