@@ -43,6 +43,9 @@ export default function BotsPage() {
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
+          <div className="xl:col-span-2 text-[11.5px] text-slate-400">
+            Paper moddaki sonuçlar sanaldır; gerçek kâr kanıtı değildir.
+          </div>
           {bots.map((bot) => (
             <div key={bot.id} className="panel">
               <div className="mb-3 flex items-start justify-between gap-3">

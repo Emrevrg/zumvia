@@ -526,8 +526,19 @@ def _run_bot_cycle(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
 )
 def _open_position(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
     bot = _user_bot(ctx, args["bot_id"])
+    # Acil fren (kill-switch) — orchestrator ile aynı kapı; ajan/MCP/skill atlayamaz.
+    from ..core.safety import kill_switch_active, kill_switch_reason  # noqa: PLC0415
+
+    if kill_switch_active():
+        return {"opened": False, "blocked_by": "kill_switch",
+                "reason": f"Acil fren açık ({kill_switch_reason()}); yeni pozisyon yok.",
+                "code": "KILL_SWITCH"}
     quote = fetch_quote(bot.market, bot.exchange, bot.symbol)
     price = quote.price
+    if not price or price <= 0:
+        return {"opened": False, "blocked_by": "quote",
+                "reason": "Kotasyon doğrulanamadı (geçersiz fiyat); emir uydurulmadı.",
+                "code": "QUOTE_INVALID", "available": False}
 
     df = compute_all(fetch_ohlcv(bot.market, bot.exchange, bot.symbol, bot.timeframe, 260))
     atr_v = float(df["atr_14"].iloc[-1])
@@ -553,6 +564,33 @@ def _open_position(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
     if not verdict.allowed or order is None:
         return {"opened": False, "blocked_by": "risk_shield",
                 "reason": verdict.reason, "code": verdict.code, "price": price}
+
+    # Ödeme gücü + portföy kapıları — orchestrator ile aynı sıra; direkt ajan
+    # emri bu kapıları atlayamazdı, artık atlayamaz (MCP/skill yolu dahil).
+    from ..layers.portfolio_risk import check_portfolio_limits  # noqa: PLC0415
+    from ..layers.solvency import check_position as check_solvency  # noqa: PLC0415
+
+    solvency_verdict = check_solvency(
+        equity, order.side, order.entry, order.qty, open_positions)
+    if not solvency_verdict.allowed:
+        return {"opened": False, "blocked_by": "solvency",
+                "reason": solvency_verdict.reason, "code": solvency_verdict.code}
+
+    all_open = (ctx.db.query(Position)
+                .join(Bot, Position.bot_id == Bot.id)
+                .filter(Bot.user_id == ctx.user.id,
+                        Position.status == PositionStatus.OPEN).all())
+    total_equity = sum(b.paper_balance for b in
+                       ctx.db.query(Bot).filter(Bot.user_id == ctx.user.id).all()) or equity
+    portfolio_gate = check_portfolio_limits(
+        equity=total_equity, new_risk_amount=order.risk_amount,
+        open_positions=all_open, new_symbol=bot.symbol, new_side=order.side,
+        max_heat_pct=bot.max_portfolio_heat_pct,
+    )
+    if not portfolio_gate.allowed:
+        return {"opened": False, "blocked_by": "portfolio",
+                "reason": portfolio_gate.reason, "code": portfolio_gate.code,
+                **portfolio_gate.details}
 
     broker = _make_broker(ctx.db, bot, ctx.user, bot.paper_balance)
     decision = {"confidence": float(args["confidence"]),

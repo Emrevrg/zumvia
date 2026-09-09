@@ -57,7 +57,7 @@ router = APIRouter(prefix="/api/bots", tags=["Bot"])
 RISK_PRESETS: dict[str, dict[str, Any]] = {
     "ultra_korumaci": {"risk_pct": 0.15, "daily_loss_limit_pct": 1.0, "min_confidence": 0.88,
                        "min_rr": 3.0, "max_drawdown_pct": 6.0, "min_agree": 4,
-                       "max_trades_per_day": 2, "label": "Ultra Korumacı — maksimum garanti"},
+                        "max_trades_per_day": 2, "label": "Ultra Korumacı — en düşük risk"},
     "korumaci": {"risk_pct": 0.25, "daily_loss_limit_pct": 2.0, "min_confidence": 0.85,
                  "min_rr": 2.5, "max_drawdown_pct": 10.0, "min_agree": 3,
                  "max_trades_per_day": 4, "label": "Korumacı — önce sermaye"},
@@ -228,9 +228,20 @@ def list_bots(db: Session = Depends(get_db),
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_bot(payload: BotIn, db: Session = Depends(get_db),
                user: User = Depends(current_user)) -> dict:
-    if payload.mode == "live" and settings.force_paper_only:
-        raise HTTPException(status.HTTP_403_FORBIDDEN,
-                            "Bu kurulumda canlı ticaret kapalıdır (VQ_FORCE_PAPER_ONLY).")
+    if payload.mode == "live":
+        if settings.force_paper_only:
+            raise HTTPException(status.HTTP_403_FORBIDDEN,
+                                "Bu kurulumda canlı ticaret kapalıdır (VQ_FORCE_PAPER_ONLY).")
+        from ..core.safety import can_enable_live  # noqa: PLC0415
+
+        shadow = Bot(
+            user_id=user.id, exchange_credential_id=payload.exchange_credential_id,
+            risk_pct=payload.risk_pct,
+        )
+        shadow.user = user  # can_enable_live risk_budget için
+        gate = can_enable_live(db, user, shadow, float(payload.initial_balance))
+        if not gate["allowed"]:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, gate["reason"])
 
     bot = Bot(
         user_id=user.id, name=payload.name, market=payload.market,
@@ -412,12 +423,22 @@ def get_bot(bot: Bot = Depends(user_bot), db: Session = Depends(get_db)) -> dict
 
 @router.patch("/{bot_id}")
 def update_bot(payload: BotPatch, bot: Bot = Depends(user_bot),
-               db: Session = Depends(get_db)) -> dict:
+               db: Session = Depends(get_db),
+               user: User = Depends(current_user)) -> dict:
     data = payload.model_dump(exclude_unset=True)
 
-    if data.get("mode") == "live" and settings.force_paper_only:
-        raise HTTPException(status.HTTP_403_FORBIDDEN,
-                            "Bu kurulumda canlı ticaret kapalıdır.")
+    if data.get("mode") == "live":
+        if settings.force_paper_only:
+            raise HTTPException(status.HTTP_403_FORBIDDEN,
+                                "Bu kurulumda canlı ticaret kapalıdır.")
+        from ..core.safety import can_enable_live  # noqa: PLC0415
+
+        effective_exchange = data.get("exchange_credential_id", bot.exchange_credential_id)
+        effective_capital = float(data.get("initial_balance", bot.initial_balance))
+        shadow = Bot(exchange_credential_id=effective_exchange, risk_pct=bot.risk_pct)
+        gate = can_enable_live(db, user, shadow, effective_capital)
+        if not gate["allowed"]:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, gate["reason"])
 
     # Sert tavanlar burada da uygulanır
     if "risk_pct" in data:
@@ -472,13 +493,18 @@ def delete_bot(bot: Bot = Depends(user_bot), db: Session = Depends(get_db)) -> G
 
 
 @router.post("/{bot_id}/start", response_model=GenericOut)
-def start_bot(bot: Bot = Depends(user_bot), db: Session = Depends(get_db)) -> GenericOut:
+def start_bot(bot: Bot = Depends(user_bot), db: Session = Depends(get_db),
+              user: User = Depends(current_user)) -> GenericOut:
     if bot.mode == TradingMode.LIVE:
         if settings.force_paper_only:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Canlı ticaret kapalı.")
-        if not bot.exchange_credential_id:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST,
-                                "Canlı mod için borsa API anahtarı seçilmelidir.")
+        from ..core.safety import can_enable_live  # noqa: PLC0415
+
+        gate = can_enable_live(db, user, bot, float(bot.initial_balance))
+        if not gate["allowed"]:
+            code = gate.get("code", "")
+            status_code = status.HTTP_400_BAD_REQUEST if code == "NO_EXCHANGE_KEY" else status.HTTP_403_FORBIDDEN
+            raise HTTPException(status_code, gate["reason"])
     if bot.decision_mode in ("ai_only", "hybrid", "ai_first") and not bot.llm_credential_id:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,

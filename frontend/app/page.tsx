@@ -69,6 +69,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="mb-4 panel">
+            <div className="mb-1 text-[11.5px] text-slate-400">
+              Paper moddaki sonuçlar sanaldır; gerçek kâr kanıtı değildir.
+            </div>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Bot Filosu</h2>
               <span className="text-[11.5px] text-slate-400">

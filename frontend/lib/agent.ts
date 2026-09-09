@@ -7,6 +7,8 @@ import { api } from "./api";
 export type CouncilMode = "auto" | "solo" | "council" | "strict";
 export type ControlTool = "api" | "claude_code" | "codex" | "gemini_cli";
 
+export type WorkMode = "ask" | "plan" | "agent";
+
 export type AgentSession = {
   id: number;
   title: string;
@@ -16,6 +18,7 @@ export type AgentSession = {
   sub_credential_id: number | null;
   sub_model: string;
   council_mode: CouncilMode;
+  work_mode: WorkMode;
   autonomous: boolean;
   heartbeat_seconds: number;
   status: "idle" | "thinking" | "running" | "error";
@@ -64,6 +67,18 @@ export type Playbook = {
   tags: string[];
 };
 
+export const WORK_MODE_LABEL: Record<WorkMode, string> = {
+  ask: "Sor",
+  plan: "Planla",
+  agent: "Uygula",
+};
+
+export const WORK_MODE_HELP: Record<WorkMode, string> = {
+  ask: "Okur, ölçer, anlatır. Hiçbir şeyi değiştirmez.",
+  plan: "Ne yapacağını yazar; onayın olmadan uygulamaz.",
+  agent: "Kurar, çalıştırır ve 7/24 denetler.",
+};
+
 export const MODE_LABEL: Record<CouncilMode, string> = {
   auto: "Otomatik mod",
   solo: "Tek model",
@@ -107,12 +122,23 @@ export const TOOL_TITLE: Record<string, string> = {
   activate_kill_switch: "Acil fren çekti",
   get_model_scoreboard: "Model sicilini okudu",
   list_credentials: "Anahtarları listeledi",
+  get_fundamentals: "Temel analizi okudu",
+  get_earnings: "Bilanço takvimini okudu",
+  compare_peers: "Emsalleri karşılaştırdı",
+  get_macro_regime: "Makro rejimi okudu",
+  convert_currency: "Döviz çevirdi",
+  create_skill: "Beceri yazdı",
+  run_skill: "Beceri çalıştırdı",
+  create_automation: "Otomasyon kurdu",
+  run_automation_now: "Otomasyonu çalıştırdı",
 };
 
 export const MUTATING_TOOLS = new Set([
   "create_bot", "update_bot", "control_bot", "run_bot_cycle", "open_position",
   "close_position", "send_notification", "enable_live_trading",
   "disable_live_trading", "activate_kill_switch",
+  "create_skill", "edit_skill", "delete_skill", "run_skill",
+  "create_automation", "edit_automation", "delete_automation", "run_automation_now",
 ]);
 
 /** Araç sonucunu tek satırlık okunur özete indirger. */
@@ -156,6 +182,16 @@ export function toolSummary(message: AgentMessage): string {
       return result.enabled ? `canlı moda alındı · sermaye ${result.capital}` : `reddedildi — ${result.reason ?? ""}`;
     case "get_safety_status":
       return `acil fren ${result.kill_switch ? "AÇIK" : "kapalı"} · canlı yetki ${result.live_authorization?.authorized ? "var" : "yok"}`;
+    case "get_fundamentals":
+      return result.available ? `${args.symbol} · F/K ${result.trailing_pe ?? "?"} · sektör ${result.sector ?? "?"}` : `uygulanamaz — ${result.reason ?? ""}`.slice(0,110);
+    case "get_earnings":
+      return result.available ? `sonraki ${result.next_earnings_date ?? "?"} · beklenen ${result.expected_eps ?? "?"}` : `uygulanamaz — ${result.reason ?? ""}`.slice(0,110);
+    case "compare_peers":
+      return result.available ? `medyan F/K ${result.median_peer_pe ?? "?"} · ucuz mu ${result.cheaper_than_median ?? "?"}` : `uygulanamaz — ${result.reason ?? ""}`.slice(0,110);
+    case "get_macro_regime":
+      return `${result.regime ?? "?"} · ${result.reasons?.[0] ?? ""}`.slice(0,110);
+    case "convert_currency":
+      return result.available ? `${result.amount} ${result.base} → ${result.converted} ${result.quote}` : `${result.reason ?? ""}`.slice(0,110);
     case "system_health":
       return `${result.bots_running ?? 0}/${result.bots_total ?? 0} çalışıyor`;
     default:

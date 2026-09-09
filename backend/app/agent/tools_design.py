@@ -55,7 +55,7 @@ def _slugify(text: str) -> str:
         "label": {"type": "string", "description": "Kısa, açıklayıcı ad"},
         "reason": {"type": "string",
                    "description": "Hazır sistemler neden yetmedi? Somut gerekçe."},
-        "thesis": {"type": "string", "description": "Sistem neden para kazandırır (tek cümle)"},
+        "thesis": {"type": "string", "description": "Sistem hangi koşulda neyi hedefler (tek cümle; getiri vaat etme)"},
         "strength": {"type": "string", "description": "Güçlü olduğu ortam"},
         "weakness": {"type": "string", "description": "Nerede para kaybettirir (ZORUNLU, dürüst)"},
         "avoid_when": {"type": "string", "description": "Hangi koşulda kullanılmamalı"},

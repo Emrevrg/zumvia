@@ -138,6 +138,10 @@ def build_report(db: Session, user: User, *, period_days: int = 7,
             "user": user.email,
             "mode_label": "CANLI + SANAL" if live_bots else "YALNIZCA SANAL (paper)",
             "disclaimer": DISCLAIMER,
+            "paper_notice": ("Paper moddaki sonuçlar sanaldır; gerçek kâr kanıtı değildir. "
+                             "Geçmiş performans gelecek sonuçları garanti etmez."),
+            "evaluation_note": ("8 saatlik gerçek zamanlı forward gözlem yapılmadı; "
+                                "hızlandırılmış geçmiş-veri değerlendirmesi kullanılır."),
         },
         "safety": safety_snapshot(db, user),
         "capital": {
@@ -207,6 +211,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"**Referans zamanı:** {meta['reference_date']} ({meta['timezone']})  ",
         f"**Çalışma kimliği:** `{meta['run_id']}`  ",
         f"**Mod:** {meta['mode_label']}  ",
+        f"**Not:** {meta.get('paper_notice', meta['disclaimer'])}  ",
         f"**Acil fren:** {'AÇIK — yeni işlem yok' if safety['kill_switch'] else 'kapalı'}  ",
         f"**Canlı yetki:** "
         f"{'aktif · üst limit ' + _fmt(safety['live_authorization'].get('max_capital', 0)) if safety['live_authorization']['authorized'] else 'yok'}",

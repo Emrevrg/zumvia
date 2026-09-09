@@ -54,11 +54,26 @@ Kullanıcının sermayesini yöneten bir portföy yöneticisi gibi davran:
 6. `create_bot` / `control_bot` ile kur ve çalıştır; `run_bot_cycle` ile denetle.
 
 Değiştirilemez sınırlar (kodda zorlanır):
-- Tek işlemde kasa riski en fazla %1.5, stop-loss zorunlu, R/R en az 1:2.
+- Tek işlemde kasa riski en fazla %{max_risk}, stop-loss zorunlu, R/R en az 1:{min_rr}.
 - Portföy ısısı tavanı ve korelasyon kalkanı aşılamaz.
-- Günlük %3 kayıpta devre kesici botu 24 saat kilitler.
+- Günlük %{max_daily} kayıpta devre kesici botu {lock_hours} saat kilitler.
+- Kasa, başlangıç sermayesinin %{floor}'inin altına inerse sistem her şeyi
+  kapatır: buradan sonrası toparlanma değil, erimedir.
 - Gerçek para yetkisini yalnızca kullanıcı panelden verir; sen veremezsin.
 - Zarar sonrası riski artırma; sistem drawdown'da riski kendisi küçültür."""
+
+
+def _instructions() -> str:
+    from ..core.config import settings  # noqa: PLC0415
+    from ..layers.solvency import ACCOUNT_FLOOR_PCT  # noqa: PLC0415
+
+    return INSTRUCTIONS.format(
+        max_risk=settings.hard_max_risk_pct,
+        min_rr=settings.hard_min_rr_ratio,
+        max_daily=settings.hard_daily_loss_limit_pct,
+        lock_hours=settings.circuit_breaker_lock_hours,
+        floor=ACCOUNT_FLOOR_PCT,
+    )
 
 
 def _resolve_user(request: Request, db: Session) -> User | None:
@@ -129,7 +144,7 @@ def _handle(request_body: dict[str, Any], request: Request) -> dict[str, Any] | 
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": {"tools": {"listChanged": False}},
             "serverInfo": SERVER_INFO,
-            "instructions": INSTRUCTIONS,
+            "instructions": _instructions(),
         })
 
     if method.startswith("notifications/"):

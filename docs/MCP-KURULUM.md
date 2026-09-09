@@ -1,7 +1,8 @@
 # MCP Kurulumu — Claude Code, Claude Desktop, Cursor
 
 ZUMVIA bir **MCP (Model Context Protocol) sunucusudur**. Bağladığınız
-araç, platformun 27 ticaret aracını doğrudan kullanmaya başlar: piyasa tarar,
+araç, platformun ticaret araçlarını doğrudan kullanmaya başlar (güncel sayı
+`tools/list` ile görülür): piyasa tarar,
 geri test yapar, bot kurar, pozisyon açar — hepsi **aynı risk kalkanının**
 altında.
 
@@ -50,7 +51,7 @@ $env:VQ_MCP_TOKEN = "vq_ANAHTARINIZ"
 ```
 
 Ardından bu klasörde `claude` başlatın; Claude Code proje MCP sunucularını
-onayınıza sunar. Onayladıktan sonra 30 araç kullanıma hazırdır.
+onayınıza sunar. Onayladıktan sonra araç listesi (`tools/list`) kullanıma hazırdır.
 
 ### Elle eklemek isterseniz
 
@@ -157,7 +158,7 @@ Bağladığınız araç sizin adınıza çalışır ama **sınırların dışın
 
 | Kural | Nerede zorlanır |
 |---|---|
-| Tek işlemde en fazla %1.5 risk | `app/layers/l4_risk.py` |
+| Tek işlemde en fazla %1.0 risk | `app/layers/l4_risk.py` |
 | Stop-loss zorunlu, R/R en az 1:2 | `app/layers/l4_risk.py` |
 | Portföy ısısı ve korelasyon tavanı | `app/layers/portfolio_risk.py` |
 | Gerçek para yetkisi **verilemez** | Araç kayıt defterinde böyle bir araç yok |

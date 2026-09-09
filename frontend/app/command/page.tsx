@@ -8,7 +8,7 @@ import { Shell } from "@/components/Shell";
 import { api, fetcher, openEventStream } from "@/lib/api";
 import {
   agentApi, AgentCatalog, AgentMessage, AgentSession, CouncilMode, MODE_HELP,
-  MODE_LABEL, MUTATING_TOOLS, TOOL_TITLE, toolSummary,
+  MODE_LABEL, MUTATING_TOOLS, TOOL_TITLE, toolSummary, WORK_MODE_HELP, WORK_MODE_LABEL, WorkMode,
 } from "@/lib/agent";
 
 type Credential = { id: number; kind: string; provider: string; label: string; hint: string };
@@ -25,6 +25,7 @@ export default function CommandPage() {
   const [status, setStatus] = useState<AgentSession["status"]>("idle");
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<CouncilMode>("auto");
+  const [workMode, setWorkMode] = useState<WorkMode>("ask");
   const streamRef = useRef<HTMLDivElement>(null);
 
   const llmKeys = (credentials ?? []).filter((c) => c.kind === "llm");
@@ -40,8 +41,9 @@ export default function CommandPage() {
     if (!sessionId) return;
     agentApi.messages(sessionId).then(setMessages).catch(() => setMessages([]));
     setMode(session?.council_mode ?? "auto");
+    setWorkMode(session?.work_mode ?? "ask");
     setStatus(session?.status ?? "idle");
-  }, [sessionId, session?.council_mode, session?.status]);
+  }, [sessionId, session?.council_mode, session?.status, session?.work_mode]);
 
   /* --- canlı akış --- */
   useEffect(() => {
@@ -69,13 +71,13 @@ export default function CommandPage() {
       control_model: "",
       sub_credential_id: cred?.id ?? null,
       council_mode: mode,
-      autonomous: false,
+      work_mode: workMode,
       heartbeat_seconds: 900,
     });
     await mutateSessions();
     setSessionId(created.id);
     return created;
-  }, [llmKeys, mode, mutateSessions]);
+  }, [llmKeys, mode, workMode, mutateSessions]);
 
   async function send(text?: string) {
     const content = (text ?? input).trim();
@@ -225,6 +227,20 @@ export default function CommandPage() {
           <div className="flex flex-wrap items-center gap-2 px-3 pb-2.5 text-[12px] text-slate-400">
             <select
               className="cursor-pointer rounded bg-transparent px-1 py-0.5 hover:bg-white/5"
+              value={workMode}
+              title={WORK_MODE_HELP[workMode]}
+              onChange={(e) => {
+                const value = e.target.value as WorkMode;
+                setWorkMode(value);
+                patch({ work_mode: value });
+              }}
+            >
+              {(Object.keys(WORK_MODE_LABEL) as WorkMode[]).map((key) => (
+                <option key={key} value={key}>{WORK_MODE_LABEL[key]}</option>
+              ))}
+            </select>
+            <select
+              className="cursor-pointer rounded bg-transparent px-1 py-0.5 hover:bg-white/5"
               value={mode}
               title={MODE_HELP[mode]}
               onChange={(e) => {
@@ -239,16 +255,16 @@ export default function CommandPage() {
             </select>
 
             {session && (
-              <button
+              <span
                 className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
                   session.autonomous
                     ? "border-emerald/30 bg-emerald/10 text-emerald-mint"
                     : "border-white/15"
                 }`}
-                onClick={() => patch({ autonomous: !session.autonomous })}
+                title={session.autonomous ? "Uygula modunda — 7/24 denetler" : "Sor/Planla modunda — yalnızca istek üzerine çalışır"}
               >
                 {session.autonomous ? "Otonom · 7/24" : "Elle çalışır"}
-              </button>
+              </span>
             )}
 
             <span className="ml-auto">{status === "idle" ? "hazır" : status}</span>
@@ -263,7 +279,7 @@ export default function CommandPage() {
         </div>
 
         <p className="mx-auto mt-2 max-w-3xl text-[11.5px] text-slate-400">
-          Risk kalkanı ajanı da bağlar: işlem başına en fazla %1.5 risk, stop-loss
+          Risk kalkanı ajanı da bağlar: işlem başına en fazla {`%${capabilities?.max_risk_pct ?? 1}`} risk, stop-loss
           zorunlu, portföy ısısı tavanlı. <b>Gerçek para yetkisini yalnızca siz verirsiniz.</b>
         </p>
       </div>
