@@ -28,7 +28,13 @@ from ..core.config import settings
 from ..core.creds import public_view, read_secrets
 from ..core.logging import get_logger
 from ..engine.backtest import run_backtest
-from ..engine.orchestrator import _make_broker, close_position, execute_entry, run_cycle
+from ..engine.orchestrator import (
+    _make_broker,
+    close_position,
+    duplicate_signal_block,
+    execute_entry,
+    run_cycle,
+)
 from ..layers.l1_market_data import (
     MarketDataError,
     fetch_ohlcv,
@@ -564,6 +570,12 @@ def _open_position(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
     if not verdict.allowed or order is None:
         return {"opened": False, "blocked_by": "risk_shield",
                 "reason": verdict.reason, "code": verdict.code, "price": price}
+
+    dup_blocked, dup_reason = duplicate_signal_block(
+        ctx.db, bot, args["action"], datetime.now(UTC))
+    if dup_blocked:
+        return {"opened": False, "blocked_by": "duplicate_signal",
+                "reason": dup_reason, "code": "DUPLICATE_SIGNAL", "price": price}
 
     # Ödeme gücü + portföy kapıları — orchestrator ile aynı sıra; direkt ajan
     # emri bu kapıları atlayamazdı, artık atlayamaz (MCP/skill yolu dahil).

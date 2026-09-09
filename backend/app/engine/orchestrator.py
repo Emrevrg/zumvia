@@ -18,6 +18,7 @@ Karar mimarileri (`bot.decision_mode`):
 from __future__ import annotations
 
 import json
+import threading
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -137,6 +138,88 @@ def _open_positions(db: Session, bot: Bot) -> list[Position]:
         .filter(Position.bot_id == bot.id, Position.status == PositionStatus.OPEN)
         .all()
     )
+
+
+# --------------------------------------------------------------------------- #
+#  Giriş serileştirme + tekrar-sinyal filtresi (DUPLICATE_ORDER koruması)
+# --------------------------------------------------------------------------- #
+#
+# Videolu deneylerde bile adı geçen klasik arıza: AYNI SİNYALİN İKİ KEZ
+# İŞLEME DÖNÜŞMESİ. İki ayrı yoldan olur ve ikisi de burada kapatılır:
+#
+#   1. EŞZAMANLI ÇİFT TUR — zamanlanmış tur, elle "hemen çalıştır" ve ajan
+#      çağrısı üst üste biner; iki tur da "açık pozisyon yok" görür, ikisi
+#      de açar. Bot başına kilit (tek süreçli sunucu: uvicorn tek worker,
+#      bu yüzden threading kilidi yeterlidir) ikinci girişi kapıda durdurur.
+#
+#   2. ARDIŞIK TEKRAR SİNYAL — model her tur BUY der, her tur yeni pozisyon
+#      açılır; aynı bara ait sinyal yankısı piramit sanılır. Botun o yönde
+#      TAZE (bir yoklama dönemi içinde açılmış) pozisyonu/onayı varken aynı
+#      yöne giriş, yeni bilgi değil tekrardır ve DUPLICATE koduyla durur.
+#      Eski pozisyon + yeni sinyal tekrardan sayılmaz (zaman aşımı).
+#
+# İkisi de "işlem yok" değil "gerekçeli ret" döner: ret, olay defterine
+# koduyla yazılır; ajan/MCP/UI aynı kodu görür.
+
+_ENTRY_LOCKS: dict[int, threading.Lock] = {}
+_ENTRY_LOCKS_GUARD = threading.Lock()
+
+
+def _entry_lock(bot_id: int) -> threading.Lock:
+    with _ENTRY_LOCKS_GUARD:
+        lock = _ENTRY_LOCKS.get(bot_id)
+        if lock is None:
+            lock = threading.Lock()
+            _ENTRY_LOCKS[bot_id] = lock
+            if len(_ENTRY_LOCKS) > 2000:  # silinmiş botların kilidi birikmesin
+                _ENTRY_LOCKS.clear()
+        return lock
+
+
+def _side_of(order_side: str) -> Side | None:
+    text = (order_side or "").strip().lower()
+    if text in ("long", "buy"):
+        return Side.LONG
+    if text in ("short", "sell"):
+        return Side.SHORT
+    return None
+
+
+def duplicate_signal_block(db: Session, bot: Bot, order_side: str,
+                           now: datetime | None = None) -> tuple[bool, str]:
+    """
+    Aynı yönde taze pozisyon/onay varsa (True, gerekçe) döner.
+
+    Tazelik = botun yoklama dönemi: aynı bara ait sinyal yankısı, yeni bilgi
+    değildir. Zaman damgası okunamayan satır kanıt sayılmaz ve atlanır
+    (yokluğu cezalandırmak, sessiz yalan üretir).
+    """
+    side = _side_of(order_side)
+    if side is None:
+        return False, ""
+    moment = now or datetime.now(UTC)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    cooldown_s = max(60, int(getattr(bot, "poll_seconds", 0) or 0))
+    fresh = (
+        db.query(Position)
+        .filter(Position.bot_id == bot.id, Position.side == side,
+                Position.status.in_([PositionStatus.OPEN, PositionStatus.PENDING]))
+        .order_by(desc(Position.id)).limit(5).all()
+    )
+    for pos in fresh:
+        opened = pos.opened_at
+        if opened is None:
+            continue
+        if opened.tzinfo is None:
+            opened = opened.replace(tzinfo=UTC)
+        age_s = (moment - opened).total_seconds()
+        if 0 <= age_s < cooldown_s:
+            return True, (
+                f"Aynı yönde {int(age_s)} sn önce açılmış pozisyon/onay var "
+                f"(#{pos.id}); {cooldown_s} sn içindeki tekrar sinyal yankıdır, "
+                "yeni bilgi değil.")
+    return False, ""
 
 
 def _cred(db: Session, cred_id: int | None) -> Credential | None:
@@ -884,6 +967,18 @@ def run_cycle(bot_id: int) -> dict[str, Any]:
             return {"ok": True, "action": "SOLVENCY_BLOCKED",
                     "reason": solvency_verdict.reason}
 
+        # ---------- TEKRAR SİNYAL FİLTRESİ: duplicate order burada ölür ---------- #
+        #
+        # Portföy kapısından ÖNCE sorulur: taze tekrarın teşhisi "yankı"dır,
+        # "küme riski" değil. İkisi de engeller; ama yanlış teşhis, yanlış
+        # düzeltmeye götürür (kullanıcı kümeyi dağıtmaya çalışır, oysa tek
+        # tur beklemek yeterdi).
+        dup_blocked, dup_reason = duplicate_signal_block(db, bot, order.side, now)
+        if dup_blocked:
+            emit(db, bot, "info", "risk", f"TEKRAR SİNYAL · {dup_reason}",
+                 {"code": "DUPLICATE_SIGNAL"})
+            return {"ok": True, "action": "DUPLICATE", "reason": dup_reason}
+
         # ---------- PORTFÖY KAPISI: küme riski ve toplam ısı ---------- #
         all_open = (db.query(Position)
                     .join(Bot, Position.bot_id == Bot.id)
@@ -985,7 +1080,37 @@ def execute_entry(db: Session, bot: Bot, user: User, broker, order: SizedOrder,
     Emir, enstrümanın taşıyabileceğinden büyükse tek seferde gönderilmez:
     parçalı yürütücüye (TWAP) devredilir. Bu durumda ilk parça hemen gider,
     kalanı zamanlayıcı gönderir ve pozisyon dolum ilerledikçe güncellenir.
+
+    Eşzamanlı çift çağrı kilitte serileşir; kilidi alamayan tur emir
+    İLETMEZ (None + kodlu olay). Kilitten geçen tur, tekrar-sinyal filtresini
+    YENİDEN okur — kapı kontrolüyle icra arasına giren tura karşı (TOCTOU)
+    son söz buradadır.
     """
+    lock = _entry_lock(bot.id)
+    if not lock.acquire(blocking=False):
+        emit(db, bot, "warn", "exec",
+             "GİRİŞ KİLİTLİ · Bu bot için bir emir iletimi sürüyor; "
+             "üst üste binen tur emir iletmedi (duplicate koruması).",
+             {"code": "ENTRY_IN_PROGRESS"})
+        return None
+    try:
+        dup_blocked, dup_reason = duplicate_signal_block(
+            db, bot, order.side, datetime.now(UTC))
+        if dup_blocked:
+            emit(db, bot, "info", "exec", f"TEKRAR SİNYAL · {dup_reason}",
+                 {"code": "DUPLICATE_SIGNAL"})
+            return None
+        return _execute_entry_inner(db, bot, user, broker, order, decision,
+                                    snapshot, df=df, depth=depth)
+    finally:
+        lock.release()
+
+
+def _execute_entry_inner(db: Session, bot: Bot, user: User, broker, order: SizedOrder,
+                         decision: dict[str, Any], snapshot: dict[str, Any],
+                         df: Any = None,
+                         depth: dict[str, Any] | None = None) -> Position | None:
+    """`execute_entry`nin kilit altındaki gerçek gövdesi (doğrudan çağrılmaz)."""
     side = "buy" if order.side == "long" else "sell"
 
     # ------------------------------------------------ büyük emir mi, tek parça mı?
