@@ -174,6 +174,126 @@ def refresh(_: User = Depends(current_user)) -> dict:
 
 
 # --------------------------------------------------------------------------- #
+#  Temel analiz + makro + döviz (finansal derinlik katmanı)
+#
+#  Desen mevcut rotalarla birebir aynıdır: Depends(current_user) +
+#  Query(...) doğrulama. Sayılar Python'da hesaplanır (ADR-001); burada
+#  yalnızca ölçülmüş veri taşınır.
+# --------------------------------------------------------------------------- #
+
+@router.get("/fundamentals")
+def get_fundamentals(symbol: str = Query(min_length=1), market: str = "",
+                     exchange: str = "",
+                     _: User = Depends(current_user)) -> dict:
+    """Değerleme oranları: F/K, PD/DD, FD/FAVÖK, temettü verimi, marjlar."""
+    from ..layers import fundamentals as fund  # noqa: PLC0415
+
+    try:
+        inst = hub.resolve(symbol, market, exchange)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return fund.snapshot(inst)
+
+
+@router.get("/income-statement")
+def get_income_statement(symbol: str = Query(min_length=1), market: str = "",
+                         exchange: str = "", periods: int = 4,
+                         _: User = Depends(current_user)) -> dict:
+    """Çeyreklik gelir tablosu + QoQ/YoY büyüme yüzdeleri."""
+    from ..layers import fundamentals as fund  # noqa: PLC0415
+
+    try:
+        inst = hub.resolve(symbol, market, exchange)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return fund.income_statement(inst, max(1, min(periods, 12)))
+
+
+@router.get("/balance-sheet")
+def get_balance_sheet(symbol: str = Query(min_length=1), market: str = "",
+                      exchange: str = "", periods: int = 4,
+                      _: User = Depends(current_user)) -> dict:
+    """Çeyreklik bilanço: varlık, borç, özsermaye, nakit, net borç."""
+    from ..layers import fundamentals as fund  # noqa: PLC0415
+
+    try:
+        inst = hub.resolve(symbol, market, exchange)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return fund.balance_sheet(inst, max(1, min(periods, 12)))
+
+
+@router.get("/earnings")
+def get_earnings(symbol: str = Query(min_length=1), market: str = "",
+                 exchange: str = "",
+                 _: User = Depends(current_user)) -> dict:
+    """Bir sonraki bilanço tarihi, beklenen EPS ve son sürprizler."""
+    from ..layers import fundamentals as fund  # noqa: PLC0415
+
+    try:
+        inst = hub.resolve(symbol, market, exchange)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return fund.earnings_calendar(inst)
+
+
+@router.get("/dividends")
+def get_dividends(symbol: str = Query(min_length=1), market: str = "",
+                  exchange: str = "",
+                  _: User = Depends(current_user)) -> dict:
+    """Son ödemeler, verim, ödeme oranı ve artış serisi."""
+    from ..layers import fundamentals as fund  # noqa: PLC0415
+
+    try:
+        inst = hub.resolve(symbol, market, exchange)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return fund.dividends(inst)
+
+
+@router.get("/peers")
+def get_peers(symbol: str = Query(min_length=1), market: str = "",
+              exchange: str = "", limit: int = 8,
+              _: User = Depends(current_user)) -> dict:
+    """Aynı sektörden emsaller: F/K + büyüme (göreli ucuzluk için)."""
+    from ..layers import fundamentals as fund  # noqa: PLC0415
+
+    try:
+        inst = hub.resolve(symbol, market, exchange)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return fund.peers(inst, max(1, min(limit, 12)))
+
+
+@router.get("/macro")
+def get_macro(_: User = Depends(current_user)) -> dict:
+    """Piyasa rejimi: risk_on / risk_off / belirsiz + gerekçeler."""
+    from ..layers import macro as macro_layer  # noqa: PLC0415
+
+    return macro_layer.regime()
+
+
+@router.get("/fx")
+def get_fx(base: str = Query(min_length=1), quote: str = Query(min_length=1),
+           amount: float = 1.0,
+           _: User = Depends(current_user)) -> dict:
+    """Anlık kur ve çevrim: 1 baz kaç kot eder, tutar ne olur."""
+    from ..layers import fx as fx_layer  # noqa: PLC0415
+
+    try:
+        converted = fx_layer.convert(amount, base, quote)
+        current_rate = fx_layer.rate(base, quote)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    except RuntimeError as exc:
+        return {"available": False, "reason": str(exc)[:200],
+                "base": base.upper(), "quote": quote.upper()}
+    return {"available": True, "base": base.upper(), "quote": quote.upper(),
+            "rate": current_rate, "amount": amount, "converted": converted,
+            "source": fx_layer.SOURCE}
+
+
+# --------------------------------------------------------------------------- #
 #  Ajan bağlamı
 # --------------------------------------------------------------------------- #
 

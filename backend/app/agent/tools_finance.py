@@ -259,6 +259,139 @@ def _cross_check(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
 
 
 @tool(
+    "get_fundamentals",
+    "Bir hissenin/ETF'in TEMEL ANALİZ fotoğrafı: piyasa değeri, F/K (trailing "
+    "+ forward), PD/DD, FD/FAVÖK, temettü verimi, HBK, ROE, borç/özsermaye, "
+    "brüt ve net marj. Kullanıcı 'bu hisse ucuz mu', 'değerlemesi nasıl', "
+    "'temettü veriyor mu', 'borcu ne durumda' diye sorduğunda BUNU çağır — "
+    "teknik göstergeler (`instrument_file`) fiyatın NEREDE olduğunu söyler, "
+    "bu araç NEDEN orada olduğunu. Tüm sayılar yfinance'tan Python ile ölçülür, "
+    "tahmin değildir. Kripto için uygulanamaz döner.",
+    _obj({
+        "symbol": _SYMBOL,
+        "market": _MARKET,
+    }, ["symbol"]),
+)
+def _get_fundamentals(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
+    from ..layers import fundamentals as fund  # noqa: PLC0415
+
+    try:
+        inst = hub.resolve(args["symbol"], args.get("market", ""), "")
+    except ValueError as exc:
+        return {"error": str(exc)}
+    data = fund.snapshot(inst)
+    data["KURAL"] = ("Bu sayılar ÖLÇÜLMÜŞTÜR (yfinance). Eksik alan None demektir, "
+                     "0 DEĞİLDİR — None'ı 0 gibi yorumlayıp 'bedava/çok ucuz' deme. "
+                     "`available: false` ise temel analiz YOKTUR, uydurma.")
+    return data
+
+
+@tool(
+    "get_earnings",
+    "Bir hissenin BİLANÇO TAKVİMİ: bir sonraki bilanço tarihi, beklenen EPS ve "
+    "son 4 çeyreğin sürpriz yüzdesi (gerçekleşen vs beklenen). Kullanıcı "
+    "'bilançosu ne zaman', 'beklenti ne', 'sürpriz yapıyor mu' diye sorduğunda "
+    "ya da bilançoya günler kala risk değerlendirmesi yaparken BUNU çağır. "
+    "Tarih yaklaşırken pozisyon riskini ayrıca değerlendir.",
+    _obj({
+        "symbol": _SYMBOL,
+        "market": _MARKET,
+    }, ["symbol"]),
+)
+def _get_earnings(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
+    from ..layers import fundamentals as fund  # noqa: PLC0415
+
+    try:
+        inst = hub.resolve(args["symbol"], args.get("market", ""), "")
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return fund.earnings_calendar(inst)
+
+
+@tool(
+    "compare_peers",
+    "Aynı sektörden EMSAL KARŞILAŞTIRMA: şirketin F/K'si sektör medyanının "
+    "altında mı üstünde mi, emsallerin büyüme oranları ne. Kullanıcı 'ucuz mu "
+    'pahalı mı", "rakiplerine göre nasıl", "sektörde hangisi" diye sorduğunda '
+    "BUNU çağır. Tek başına F/K yorumlama — medyanla birlikte oku.",
+    _obj({
+        "symbol": _SYMBOL,
+        "market": _MARKET,
+        "limit": {"type": "integer",
+                  "description": "Kaç emsal (varsayılan 8, en fazla 12)"},
+    }, ["symbol"]),
+)
+def _compare_peers(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
+    from ..layers import fundamentals as fund  # noqa: PLC0415
+
+    try:
+        inst = hub.resolve(args["symbol"], args.get("market", ""), "")
+    except ValueError as exc:
+        return {"error": str(exc)}
+    try:
+        limit = int(args.get("limit", 8))
+    except (TypeError, ValueError):
+        limit = 8
+    data = fund.peers(inst, limit)
+    data["KURAL"] = ("`cheaper_than_median` yalnızca F/K kıyasıdır; büyüme "
+                     "farkını görmezden gelip 'ucuz, alınır' DEME. Bilanço "
+                     "tarihi yakınsa `get_earnings` ile birlikte oku.")
+    return data
+
+
+@tool(
+    "get_macro_regime",
+    "Piyasanın MAKRO REJİMİ: risk_on / risk_off / belirsiz + hangi göstergenin "
+    "bu sonucu verdiği (getiri eğrisi, VIX, dolar endeksi, petrol/bakır/altın). "
+    "Kullanıcı 'piyasa havası nasıl', 'risk iştahı var mı', 'neden düştük' diye "
+    "sorduğunda ya da BÜYÜK bir karar öncesi zemini okumak için BUNU çağır. "
+    "Tek kelimelik etiket saf Python ile hesaplanır; emir talimatı DEĞİLDİR, "
+    "gözlemdir.",
+    _obj({}),
+)
+def _get_macro_regime(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
+    from ..layers import macro as macro_layer  # noqa: PLC0415
+
+    data = macro_layer.regime()
+    data["KURAL"] = ("Rejim bir GÖZLEMDİR, emir talimatı değildir. risk_off "
+                     "görünce pozisyon kapatmayı KENDİN uydurma; sayıyı ve "
+                     "gerekçeyi kullanıcıya aktar, kararı ona bırak.")
+    return data
+
+
+@tool(
+    "convert_currency",
+    "DÖVİZ ÇEVİRİMİ: bir tutarı bir paradan diğerine çevirir (örn. 1000 USD kaç "
+    "TRY). Portföy toplamı, farklı paralardaki pozisyon karşılaştırması ya da "
+    "kullanıcı 'şu para cinsinden ne ediyor' dediğinde BUNU çağır — kuru kafandan "
+    "UYDURMA. Kur yfinance paritelerinden Python ile ölçülür.",
+    _obj({
+        "amount": {"type": "number", "description": "Çevrilecek tutar"},
+        "base": {"type": "string", "description": "Kaynak para, örn. USD"},
+        "quote": {"type": "string", "description": "Hedef para, örn. TRY"},
+    }, ["amount", "base", "quote"]),
+)
+def _convert_currency(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
+    from ..layers import fx as fx_layer  # noqa: PLC0415
+
+    try:
+        amount = float(args["amount"])
+    except (TypeError, ValueError, KeyError):
+        return {"error": "Tutar sayı olmalı."}
+    try:
+        converted = fx_layer.convert(amount, args["base"], args["quote"])
+        current_rate = fx_layer.rate(args["base"], args["quote"])
+    except ValueError as exc:
+        return {"error": str(exc)}
+    except RuntimeError as exc:
+        return {"available": False, "reason": str(exc)[:200]}
+    return {"available": True, "base": str(args["base"]).upper(),
+            "quote": str(args["quote"]).upper(), "amount": amount,
+            "rate": current_rate, "converted": converted,
+            "KURAL": "Kur ÖLÇÜLMÜŞTÜR; dünkü kurla bugünkü tutarı çarpma."}
+
+
+@tool(
     "capital_map",
     "Kullanıcının parasının ŞU AN nerede olduğunu döndürür: ne kadarı boşta "
     "(nakit), ne kadarı piyasada (pozisyonların içinde), ne kadarı gerçekten "
