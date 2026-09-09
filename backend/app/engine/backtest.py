@@ -72,7 +72,9 @@ class BacktestReport:
 def _metrics(trades: list[BacktestTrade], curve: list[float],
              initial: float, final: float, bars: int) -> dict[str, Any]:
     if not trades:
-        return {"trade_count": 0, "note": "Bu dönemde kurulum oluşmadı."}
+        return {"trade_count": 0, "note": "Bu dönemde kurulum oluşmadı.",
+                "profit_factor_ci95": None, "win_rate_ci95": None,
+                "expectancy_R_ci95": None}
 
     pnls = np.array([t.pnl for t in trades], dtype=float)
     wins = pnls[pnls > 0]
@@ -91,7 +93,7 @@ def _metrics(trades: list[BacktestTrade], curve: list[float],
     profit_factor = gross_win / gross_loss if gross_loss > 0 else (float("inf") if gross_win > 0 else 0.0)
 
     r_values = np.array([t.r_multiple for t in trades], dtype=float)
-    return {
+    out = {
         "trade_count": len(trades),
         "win_rate_pct": round(len(wins) / len(trades) * 100.0, 2),
         "profit_factor": round(profit_factor, 3) if np.isfinite(profit_factor) else 999.0,
@@ -106,6 +108,8 @@ def _metrics(trades: list[BacktestTrade], curve: list[float],
         "max_consecutive_losses": int(_max_streak(pnls <= 0)),
         "bars_tested": bars,
     }
+    out.update(_bootstrap_ci95(pnls, r_values))
+    return out
 
 
 def _max_streak(mask: np.ndarray) -> int:
@@ -114,6 +118,55 @@ def _max_streak(mask: np.ndarray) -> int:
         cur = cur + 1 if v else 0
         best = max(best, cur)
     return best
+
+
+# Bootstrap güven aralığı sabiti: aynı işlemler her zaman aynı aralığı verir
+# (tekrarlanabilirlik). Tohum gömülü sihirli sayı değil, raporlanan bir
+# yöntem parametresidir.
+BOOTSTRAP_REPS = 1000
+BOOTSTRAP_SEED = 7
+BOOTSTRAP_MIN_TRADES = 10
+
+
+def _bootstrap_ci95(pnls: np.ndarray, r_values: np.ndarray) -> dict[str, Any]:
+    """
+    İşlem PnL'leri üzerinden %95 bootstrap güven aralığı (percentile).
+
+    Yöntem: işlemleri yerine koyarak B kez yeniden örnekle, her örnekte
+    kâr faktörü / kazanma oranı / R-beklentisini hesapla, %2.5–97.5
+    dilimlerini al. Tüm hesap Python'dadır (ADR-001); model yalnızca okur.
+    Örnek <10 ise aralık UYDURULMAZ, None döner.
+    """
+    n = len(pnls)
+    if n < BOOTSTRAP_MIN_TRADES:
+        return {"profit_factor_ci95": None, "win_rate_ci95": None,
+                "expectancy_R_ci95": None,
+                "ci_note": (f"Örnek yetersiz ({n} < {BOOTSTRAP_MIN_TRADES}); "
+                            "güven aralığı uydurulmadı.")}
+    rng = np.random.default_rng(BOOTSTRAP_SEED)
+    idx = rng.integers(0, n, size=(BOOTSTRAP_REPS, n))
+    sample_pnl = pnls[idx]
+    sample_r = r_values[idx]
+
+    gross_win = np.where(sample_pnl > 0, sample_pnl, 0.0).sum(axis=1)
+    gross_loss = np.abs(np.where(sample_pnl <= 0, sample_pnl, 0.0)).sum(axis=1)
+    pf = np.divide(gross_win, gross_loss, out=np.full_like(gross_win, 999.0),
+                   where=gross_loss > 0)
+    wr = (sample_pnl > 0).mean(axis=1) * 100.0
+    exp_r = sample_r.mean(axis=1)
+
+    def band(values: np.ndarray) -> list[float]:
+        lo, hi = np.percentile(values[np.isfinite(values)], [2.5, 97.5])
+        return [round(float(lo), 3), round(float(hi), 3)]
+
+    return {
+        "profit_factor_ci95": band(pf),
+        "win_rate_ci95": [round(float(v), 2) for v in
+                          np.percentile(wr, [2.5, 97.5])],
+        "expectancy_R_ci95": band(exp_r),
+        "ci_note": (f"Bootstrap %95 GA (B={BOOTSTRAP_REPS}, seed={BOOTSTRAP_SEED}, "
+                    f"n={n}). Nokta tahmini garantisi değil, örneklem belirsizliğidir."),
+    }
 
 
 def _verdict(m: dict[str, Any]) -> str:

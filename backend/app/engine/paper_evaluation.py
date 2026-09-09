@@ -136,7 +136,8 @@ def run_paper_evaluation(
     trades_n = int(m.get("trade_count", 0) or 0)
     gate2 = sufficiency_gate(trade_count=trades_n, oos_trades=wf.oos_trades)
     steps.append(_step("strateji_olcumu", True,
-                       f"Backtest: {trades_n} işlem, PF {m.get('profit_factor')}; "
+                       f"Backtest: {trades_n} işlem, PF {m.get('profit_factor')} "
+                       f"(%95 GA {m.get('profit_factor_ci95')}); "
                        f"OOS: {wf.oos_trades} işlem, PF {wf.oos_profit_factor:.2f}, "
                        f"gap {wf.overfit_gap:.2f}. Hüküm: {bt.verdict[:120]}",
                        backtest=bt.to_dict(), walk_forward=wf.to_dict(),

@@ -276,6 +276,68 @@ def test_reddedilen_emir_pozisyonsuz_kapanir(monkeypatch) -> None:
 
 
 # --------------------------------------------------------------------------- #
+#  Güven aralığı (bootstrap %95 — tohumlu, tekrarlanabilir)
+# --------------------------------------------------------------------------- #
+
+def _ornek_islemler() -> list:
+    from app.engine.backtest import BacktestTrade
+
+    # 12 işlem: 5 kazanan, 7 kaybeden (karışık, gerçekçi).
+    pnller = [8.0, -5.0, 12.0, -4.0, 6.0, -7.0, -3.0, 9.0, -6.0, 4.0, -5.0, 7.0]
+    return [BacktestTrade(entry_time="t", exit_time="t", side="BUY",
+                          entry=100.0, exit=100.0 + p, qty=1.0, pnl=p,
+                          r_multiple=p / 5.0, reason="test", strategy="test")
+            for p in pnller]
+
+
+def test_guven_araligi_tekrarlanabilir_ve_tutarli() -> None:
+    from app.engine.backtest import _metrics
+
+    islemler = _ornek_islemler()
+    ilk = _metrics(islemler, [100.0] * 13, 100.0, 100.0, 200)
+    ikinci = _metrics(islemler, [100.0] * 13, 100.0, 100.0, 200)
+    assert ilk["profit_factor_ci95"] == ikinci["profit_factor_ci95"]
+    assert ilk["win_rate_ci95"] == ikinci["win_rate_ci95"]
+    assert ilk["expectancy_R_ci95"] == ikinci["expectancy_R_ci95"]
+
+    lo, hi = ilk["profit_factor_ci95"]
+    assert 0 <= lo <= hi
+    # Karışık örnekte aralık yozlaşmaz (tek noktaya çökmez).
+    assert hi > lo, "aralık yozlaştı; bootstrap örneklemesi çalışmıyor"
+    wlo, whi = ilk["win_rate_ci95"]
+    assert 0 <= wlo <= whi <= 100
+    assert "rneklem belirsizli" in ilk["ci_note"]
+
+
+def test_yetersiz_ornekte_aralik_uydurulmaz() -> None:
+    from app.engine.backtest import _metrics
+
+    islemler = _ornek_islemler()[:4]
+    sonuc = _metrics(islemler, [100.0] * 5, 100.0, 100.0, 50)
+    assert sonuc["profit_factor_ci95"] is None
+    assert sonuc["win_rate_ci95"] is None
+    assert sonuc["expectancy_R_ci95"] is None
+    assert "yetersiz" in sonuc["ci_note"].lower()
+
+    bos = _metrics([], [], 100.0, 100.0, 50)
+    assert bos["trade_count"] == 0
+    assert bos["profit_factor_ci95"] is None
+
+
+def test_guven_araligi_rapora_tasinir() -> None:
+    df = _demo_ohlcv("BTC/USDT", "1h", 5000)
+    rapor = run_paper_evaluation(
+        market="crypto", symbol="BTC/USDT", timeframe="1h",
+        fetch_ohlcv=lambda m, s, tf: df,
+        fetch_quote=lambda m, s: {"price": float(df["close"].iloc[-1]),
+                                  "bid": None, "ask": None, "ts": None},
+        now=NOW)
+    metrik = rapor["backtest"]["metrics"]
+    assert "profit_factor_ci95" in metrik
+    assert "%95 GA" in rapor["steps"][3]["detail"]
+
+
+# --------------------------------------------------------------------------- #
 #  Piyasa kapısı (market_rules — hızlı birim testleri)
 # --------------------------------------------------------------------------- #
 
