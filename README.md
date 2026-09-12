@@ -12,7 +12,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/lisans-MIT-00e676?style=flat-square" alt="MIT">
   <img src="https://img.shields.io/badge/python-3.11%2B-00e676?style=flat-square" alt="Python">
-  <img src="https://img.shields.io/badge/test-302%20ge%C3%A7iyor-00e676?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/test-934%20ge%C3%A7iyor-00e676?style=flat-square" alt="Tests">
   <img src="https://img.shields.io/badge/mod-paper%20(varsay%C4%B1lan)-1e9e5a?style=flat-square" alt="Paper">
   <img src="https://img.shields.io/badge/MCP-destekli-00e676?style=flat-square" alt="MCP">
 </p>
@@ -124,7 +124,7 @@ aracı, hangi botu, hangi stratejiyi kullanacağını) ajan kendisi belirler.
 │  Kontrol aracı: API modeli │ Claude Code │ Codex │ Gemini CLI    │
 │  Alt model (analist): ikinci görüş için delege edilir            │
 └───────────────────────────────┬──────────────────────────────────┘
-                                │ 37 araç
+                                │ 69 araç
 ┌───────────────────────────────▼──────────────────────────────────┐
 │ KATMAN 1  Piyasa verisi      ccxt (100+ borsa) · yfinance        │
 │ KATMAN 2  Matematik motoru   RSI · EMA · MACD · BB · ATR · ADX   │
