@@ -534,6 +534,15 @@ def _stopped(db: Session, session: AgentSession, steps: int) -> dict[str, Any]:
 _MARKER_BODY = r"\[\s*(?:araç|arac|tool)[^\]]*\]"
 _TOOL_MARKER = re.compile(rf"^\s*{_MARKER_BODY}\s*$", re.I)
 _TRAILING_MARKER = re.compile(rf"\s*{_MARKER_BODY}\s*$", re.I)
+# Aynı işaret metnin ORTASINDA da belirebilir ("Komuta bölümündeki aynı
+# sorun"): model cevabın arasına tek satırlık `[Araç calls: x]` serpiştirir.
+# Tam-eşleşme ve sondaki temizlik bunları yakalayamaz. Köşeli içinde
+# araç/arac/tool/calls geçen her tek satır iç işarettir; kelime sınırı var,
+# yoksa "[BTC/USDT]" gibi masum parantezler de giderdi.
+_MARKER_LINE = re.compile(
+    r"(?m)^[ \t]*\[[^\]\n]*(?:araç|arac|\btools?\b|\bcalls?\b)[^\]\n]*\][ \t]*$",
+    re.I,
+)
 
 
 def _spoken_text(text: str) -> str:
@@ -549,6 +558,13 @@ def _spoken_text(text: str) -> str:
     dürüst kapanış cümlesi devreye girer.
     """
     cleaned = (text or "").strip()
+    if not cleaned:
+        return ""
+    # Önce satır içi işaret satırları atılır (boş satırlar korunur —
+    # paragraf yapısı cevaba aittir). Tam metin ve sondaki ayrıca ele alınır.
+    kept = [line for line in cleaned.split("\n")
+            if not line.strip() or not _MARKER_LINE.match(line)]
+    cleaned = "\n".join(kept).strip()
     if not cleaned or _TOOL_MARKER.match(cleaned):
         return ""
     # Metnin SONUNA yapışmış işareti at, gerisini koru.
@@ -923,6 +939,16 @@ def run_cli_agent(db: Session, user: User, session: AgentSession,
     if output:
         for chunk in _chunks(output, 3500):
             record(db, session, "assistant", chunk)
+    if process.returncode != 0:
+        # KRİTİK: sıfır-dışı çıkış, bitmemiş görev demektir. Eskiden bu dal
+        # yoktu: hata veren CLI turu "idle + ok" ile kapanıyor, kullanıcı işin
+        # bittiğini sanıyordu. Yarım kalan iş artık açıkça hata sayılır.
+        detail = (stderr.strip() or output.strip())[:2000]
+        text = (f"{spec['label']} hata koduyla bitti (kod {process.returncode}). "
+                f"Görev TAMAMLANMADI.\n{detail}")
+        record(db, session, "assistant", text, ok=False)
+        set_status(db, session, "error", text)
+        return {"ok": False, "error": text}
     if not output and stderr:
         record(db, session, "assistant", f" {spec['label']} hata verdi:\n{stderr[:2000]}",
                ok=False)

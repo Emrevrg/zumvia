@@ -12,7 +12,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/lisans-MIT-00e676?style=flat-square" alt="MIT">
   <img src="https://img.shields.io/badge/python-3.11%2B-00e676?style=flat-square" alt="Python">
-  <img src="https://img.shields.io/badge/test-934%20ge%C3%A7iyor-00e676?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/test-943%20ge%C3%A7iyor-00e676?style=flat-square" alt="Tests">
   <img src="https://img.shields.io/badge/mod-paper%20(varsay%C4%B1lan)-1e9e5a?style=flat-square" alt="Paper">
   <img src="https://img.shields.io/badge/MCP-destekli-00e676?style=flat-square" alt="MCP">
 </p>
@@ -880,7 +880,7 @@ cd backend
 python -m pytest tests -q
 ```
 
-934 test; risk kalkanının her kuralı, gösterge formülleri, LLM şema zorlaması,
+943 test; risk kalkanının her kuralı, gösterge formülleri, LLM şema zorlaması,
 ajan döngüsü, çoklu model konseyi (bölünme/veto/ayrışma), portföy kalkanı,
 toparlanma aşamaları, walk-forward doğrulama, canlı yetki kapıları, MCP
 taşıması ve erişim anahtarları ile API uçları kapsanır. Risk kalkanına dokunan her değişiklikten

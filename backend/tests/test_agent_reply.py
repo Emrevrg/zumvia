@@ -178,3 +178,34 @@ def test_action_intent_and_safe_no_action_are_distinct() -> None:
     assert _is_terminal_outcome("Net kurulum yok; işlem açmıyorum ve bekliyorum.")
     assert _is_terminal_outcome("API anahtarı yok, bu yüzden yapılamıyor.")
     assert not _is_terminal_outcome("Bakıyorum, birazdan tamamlayacağım.")
+
+
+# --------------------------------------------------------------------------- #
+#  Satır içi işaret — "Komuta bölümündeki aynı sorun"
+# --------------------------------------------------------------------------- #
+
+def test_a_mid_text_marker_line_is_removed_sentences_kept() -> None:
+    """
+    İşaret metnin ORTASINDAYSA da süzülür, cümleler ve paragraf yapısı korunur.
+
+    Komuta bölümünde görülen durum: model cevabın arasına tek satırlık
+    `[Araç calls: x]` serpiştiriyordu; tam-eşleşme ve sondaki temizlik
+    bunları yakalayamıyordu.
+    """
+    metin = ("Önce portföye baktım.\n"
+             "[Araç calls: run_backtest, validate_strategy]\n"
+             "Sonuç iyi görünüyor.\n"
+             "\n"
+             "Devam ediyorum.")
+    temiz = _spoken_text(metin)
+    assert "[Araç calls" not in temiz
+    assert "Önce portföye baktım." in temiz
+    assert "Sonuç iyi görünüyor." in temiz
+    assert "\n\n" in temiz  # paragraf arası korunur
+
+
+def test_innocent_brackets_survive() -> None:
+    """Masum köşeli parantezler (sembol, hatırlatma) konuşmada kalır."""
+    assert "[BTC/USDT] ve [ETH/USDT] yükseldi." in _spoken_text(
+        "[BTC/USDT] ve [ETH/USDT] yükseldi.")
+    assert _spoken_text("[recall: dünkü seviye] kırıldı.") != ""

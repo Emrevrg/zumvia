@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type MouseEvent } from "react";
 import {
   Activity, BarChart3, Boxes, BrainCircuit, Globe, LineChart, LogOut, Lock,
-  MessageSquare, Sparkles,
+  MessageSquare, Sparkles, Wrench,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { auth, openEventStream } from "@/lib/api";
@@ -16,6 +16,7 @@ const NAV = [
   { href: "/finance", label: "Finans", Icon: Globe },
   { href: "/bots", label: "Botlar", Icon: Boxes },
   { href: "/systems", label: "Sistem botları", Icon: BrainCircuit },
+  { href: "/skills", label: "Yetenekler", Icon: Wrench },
   { href: "/bots/new", label: "Yeni bot", Icon: Sparkles },
   { href: "/analysis", label: "Piyasa analizi", Icon: LineChart },
   { href: "/backtest", label: "Geri test", Icon: BarChart3 },
