@@ -3,30 +3,83 @@
 @tailwind utilities;
 
 @layer base {
-  html, body { height: 100%; }
+  :root {
+    color-scheme: dark;
+    --spot-x: 72%;
+    --spot-y: 18%;
+  }
+  html { height: 100%; scroll-behavior: smooth; }
+  body { min-height: 100%; overflow-x: hidden; }
   body {
     @apply bg-void text-[#e6f1ea] font-sans antialiased;
-    background-image: theme("backgroundImage.grid-glow");
+    background-image:
+      radial-gradient(900px circle at var(--spot-x) var(--spot-y), rgba(56,189,248,.095), transparent 42%),
+      radial-gradient(800px circle at 8% 0%, rgba(0,230,118,.12), transparent 46%),
+      radial-gradient(720px circle at 100% 88%, rgba(168,85,247,.09), transparent 48%);
+    background-attachment: fixed;
   }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    opacity: .48;
+    background-image:
+      linear-gradient(rgba(148,163,184,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.045) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, black, transparent 86%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: -35%;
+    z-index: -1;
+    pointer-events: none;
+    background: conic-gradient(from 120deg, transparent, rgba(0,230,118,.045), transparent 28%, rgba(56,189,248,.04), transparent 56%, rgba(168,85,247,.04), transparent);
+    animation: aurora-spin 28s linear infinite;
+  }
+  ::selection { background: rgba(0,230,118,.28); color: white; }
   ::-webkit-scrollbar { width: 9px; height: 9px; }
   ::-webkit-scrollbar-thumb { @apply bg-slate-850 rounded-full; }
 }
 
 @layer components {
   .panel {
-    @apply rounded-2xl border border-white/10 bg-gradient-to-br from-raise/80 to-panel/90
-           p-5 shadow-panel backdrop-blur-md;
+    @apply relative rounded-2xl border border-white/10 p-5 shadow-panel backdrop-blur-xl;
+    background: linear-gradient(135deg, rgba(17,26,39,.88), rgba(8,14,24,.82));
+    box-shadow: 0 18px 50px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.035);
+    transition: transform .3s cubic-bezier(.2,.8,.2,1), border-color .3s ease, box-shadow .3s ease;
+  }
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,.035), transparent 52%);
+    transform: translateX(-100%);
+    transition: transform .75s ease;
+  }
+  .panel:hover::before { transform: translateX(100%); }
+  .panel-lift:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0,230,118,.24);
+    box-shadow: 0 22px 62px rgba(0,0,0,.5), 0 0 34px rgba(0,230,118,.06);
   }
   .stat-label { @apply text-[11px] uppercase tracking-widest text-slate-400; }
   .stat-value { @apply mt-1.5 font-mono text-2xl font-bold tracking-tight; }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-lg border border-white/15
-           bg-white/5 px-4 py-2 text-sm font-semibold transition
+           bg-white/5 px-4 py-2 text-sm font-semibold transition duration-300
            hover:border-white/30 hover:bg-white/10 disabled:opacity-40;
+    position: relative;
+    overflow: hidden;
   }
   .btn-primary {
     @apply border-transparent bg-gradient-to-br from-emerald to-[#00c261] text-[#04140b]
-           shadow-glow hover:from-emerald-mint hover:to-emerald;
+           shadow-glow hover:from-emerald-mint hover:to-emerald hover:-translate-y-0.5;
   }
   .btn-danger { @apply border-danger/30 bg-danger/10 text-danger hover:bg-danger/20; }
   .input {
@@ -45,5 +98,29 @@
   .terminal {
     @apply h-[340px] overflow-y-auto rounded-2xl border border-emerald/15 bg-black/40
            p-3 font-mono text-[11.5px] leading-relaxed;
+    box-shadow: inset 0 0 42px rgba(0,230,118,.025);
+  }
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-emerald/20 bg-emerald/10 px-3 py-1
+           text-[11px] font-bold uppercase tracking-[.18em] text-emerald-mint;
+  }
+  .glass-line {
+    background: linear-gradient(90deg, transparent, rgba(0,230,118,.75), rgba(56,189,248,.85), transparent);
+    background-size: 200% 100%;
+    animation: line-flow 4s linear infinite;
+  }
+}
+
+@keyframes aurora-spin { to { transform: rotate(360deg); } }
+@keyframes line-flow { to { background-position: -200% 0; } }
+@keyframes float-soft { 50% { transform: translate3d(0,-9px,0) scale(1.025); } }
+@keyframes scan { from { transform: translateY(-140%); } to { transform: translateY(900%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
   }
 }

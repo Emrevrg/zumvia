@@ -114,9 +114,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_origins = settings.cors_list or ["http://localhost:3000", "http://127.0.0.1:3000"]
+# "*" + credentials tarayıcıda geçersizdir ve güvensizdir: joker asla kullanılmaz.
+_cors_origins = [o for o in _cors_origins if o != "*"] or \
+    ["http://localhost:3000", "http://127.0.0.1:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_list or ["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

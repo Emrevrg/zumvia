@@ -48,8 +48,20 @@ const config: Config = {
           "70%": { boxShadow: "0 0 0 9px rgba(0,230,118,0)" },
           "100%": { boxShadow: "0 0 0 0 rgba(0,230,118,0)" },
         },
+        floatSoft: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-7px)" },
+        },
+        fadeUp: {
+          "0%": { opacity: "0", transform: "translateY(14px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
-      animation: { pulseDot: "pulseDot 1.9s infinite" },
+      animation: {
+        pulseDot: "pulseDot 1.9s infinite",
+        floatSoft: "floatSoft 5s ease-in-out infinite",
+        fadeUp: "fadeUp .55s cubic-bezier(.2,.8,.2,1) both",
+      },
     },
   },
   plugins: [],

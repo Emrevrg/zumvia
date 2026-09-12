@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ZUMVIA",
-  icons: { icon: "/favicon.svg", apple: "/logo-full.svg" },
+  icons: { icon: "/favicon.ico", apple: "/logo-512.png" },
   description: "Zero-Hallucination Neuro-Symbolic Quantitative Trading Platform",
 };
 

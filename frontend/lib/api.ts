@@ -152,16 +152,24 @@ export function openEventStream(onEvent: (event: Record<string, any>) => void): 
   url.pathname = "/ws/stream";
   url.searchParams.set("token", auth.token);
 
-  let socket: WebSocket | null = new WebSocket(url.toString());
+  let socket: WebSocket | null = null;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
 
-  socket.onmessage = (raw) => onEvent(JSON.parse(raw.data));
-  socket.onclose = () => {
-    if (!closed) setTimeout(() => openEventStream(onEvent), 4000);
+  const connect = () => {
+    if (closed) return;
+    socket = new WebSocket(url.toString());
+    socket.onmessage = (raw) => onEvent(JSON.parse(raw.data));
+    socket.onclose = () => {
+      socket = null;
+      if (!closed) reconnectTimer = setTimeout(connect, 4000);
+    };
   };
+  connect();
 
   return () => {
     closed = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
     socket?.close();
     socket = null;
   };

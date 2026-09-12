@@ -12,13 +12,14 @@ const LEVEL_STYLE: Record<string, string> = {
 };
 
 type LiveEvent = BotEvent & { bot_id?: number; bot_name?: string; type?: string };
+const EMPTY_EVENTS: LiveEvent[] = [];
 
 /**
  * Şeffaf işlem logu terminali.
  * `botId` verilirse yalnızca o botun olayları gösterilir.
  */
 export function LogTerminal({
-  initial = [],
+  initial = EMPTY_EVENTS,
   botId,
 }: {
   initial?: LiveEvent[];
@@ -27,7 +28,14 @@ export function LogTerminal({
   const [events, setEvents] = useState<LiveEvent[]>(initial);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => setEvents(initial), [initial]);
+  useEffect(() => {
+    setEvents((current) => {
+      const unchanged = current.length === initial.length && current.every(
+        (event, index) => event.id === initial[index]?.id && event.ts === initial[index]?.ts,
+      );
+      return unchanged ? current : initial;
+    });
+  }, [initial]);
 
   useEffect(() => {
     return openEventStream((event) => {

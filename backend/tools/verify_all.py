@@ -320,6 +320,44 @@ def _model_verify():
 #  7. YÜRÜTME ZİNCİRİ
 # =========================================================================== #
 
+def _trend_fixture_ohlcv(symbol: str = "SOL/USDT", bars: int = 400,
+                         drift: float = 0.004):
+    """
+    Deterministik yükseliş serisi (denetimler için).
+
+    Yürütme denetimi daha önce CANLI borsa verisine bağlıydı: piyasada trend
+    yoksa sinyal çıkmıyor, denetim haksız yere KALIYORDU. Bu fixture temiz bir
+    yükseliş trendi üretir; EMA50>EMA200, Supertrend yukarı, ADX yüksek olur ve
+    `trend_following` her çalıştırmada aynı BUY sinyalini üretir. Risk kalkanı,
+    stop mantığı ve icra yolu GERÇEKTİR — yalnızca mum verisi sabittir.
+    """
+    import numpy as np
+    import pandas as pd
+
+    rng = np.random.default_rng(7)
+    noise = rng.normal(0.0, 0.0005, bars)
+    closes = 100.0 * np.exp(np.cumsum(np.full(bars, drift) + noise))
+    opens = np.concatenate([[closes[0]], closes[:-1]])
+    highs = np.maximum(opens, closes) * 1.001
+    lows = np.minimum(opens, closes) * 0.999
+    volumes = np.full(bars, 1000.0)
+    index = pd.date_range(end=pd.Timestamp.now(tz="UTC"), periods=bars,
+                          freq="1h", tz="UTC")
+    return pd.DataFrame(
+        {"open": opens, "high": highs, "low": lows,
+         "close": closes, "volume": volumes},
+        index=index,
+    )
+
+
+def _trend_fixture_depth(market: str = "", exchange: str = "",
+                         symbol: str = "", limit: int = 20) -> dict:
+    """Fixture'a eşlik eden dar spreadli emir defteri (ağ yok)."""
+    return {"available": True, "best_bid": 100.0, "best_ask": 100.02,
+            "bid_volume": 500.0, "ask_volume": 500.0,
+            "imbalance_pct": 0.0, "pressure": "DENGELI", "spread_pct": 0.02}
+
+
 @check("Yürütme: pozisyon açılıyor, korumalar geçiyor, stop kapatıyor")
 def _execution():
     from app.core.config import settings
@@ -339,12 +377,16 @@ def _execution():
 
     db, user = _user()
     balance = 10_000.0
+    # NOT: listedeki isimler GEÇERLİ strateji kimlikleri olmalı. Daha önce
+    # burada "pullback", "vwap_revert", "macd_cross" yazıyordu; motor bilinmeyen
+    # isimleri sessizce eler, geriye tek strateji kalıyordu. Tek strateji +
+    # canlı veri = piyasaya bağlı kırılgan denetim. Geçerli tek strateji ve
+    # deterministik fixture ile denetim her koşuda aynı şeyi sınar.
     bot = Bot(user_id=user.id, name="Denetim yurutme", market="crypto",
               exchange="binance", symbol="SOL/USDT", timeframe="1h",
               mode=TradingMode.PAPER, autonomy=Autonomy.FULL,
               decision_mode="algo_only", status=BotStatus.RUNNING,
-              strategies_json=json.dumps(["trend_following", "pullback",
-                                          "vwap_revert", "macd_cross"]),
+              strategies_json=json.dumps(["trend_following"]),
               guards_json=json.dumps({"adx_min": 0, "cooldown_bars": 0}),
               initial_balance=balance, paper_balance=balance,
               peak_equity=balance, day_start_equity=balance,
@@ -353,6 +395,17 @@ def _execution():
     db.commit()
     bot_id = bot.id
 
+    # Deterministik veri: canlı borsaya çıkılmaz (ağ yok, her koşuda aynı).
+    real_fetch = orchestrator.fetch_ohlcv
+    real_depth = orchestrator.fetch_order_book_depth
+    fixture = _trend_fixture_ohlcv()
+
+    def canned(*a, **k):
+        limit = k.get("limit", a[4] if len(a) > 4 else 320)
+        return fixture.tail(max(60, min(int(limit), len(fixture)))).copy()
+
+    orchestrator.fetch_ohlcv = canned
+    orchestrator.fetch_order_book_depth = _trend_fixture_depth
     try:
         opened = None
         for _ in range(6):
@@ -363,7 +416,7 @@ def _execution():
                               Position.status == PositionStatus.OPEN).first())
             if opened:
                 break
-        assert opened is not None, "pozisyon açılmadı (sinyal gelmemiş olabilir)"
+        assert opened is not None, "fixture trende rağmen pozisyon açılmadı"
 
         entry, stop = opened.entry_price, opened.stop_loss
         risk = opened.risk_amount or abs(entry - stop) * opened.qty
@@ -373,11 +426,11 @@ def _execution():
         assert risk / balance * 100 <= settings.hard_max_risk_pct + 0.01, "risk tavanı aşıldı"
         assert reward / risk >= settings.hard_min_rr_ratio - 0.01, "R/R yetersiz"
 
-        real_fetch = orchestrator.fetch_ohlcv
+        real_fetch = canned
         below = stop * 0.995
 
         def dipped(*a, **k):
-            frame = real_fetch(*a, **k).copy()
+            frame = canned(*a, **k).copy()
             frame.iloc[-1, frame.columns.get_loc("low")] = below
             frame.iloc[-1, frame.columns.get_loc("close")] = below
             return frame
@@ -386,7 +439,7 @@ def _execution():
         try:
             run_cycle(bot_id)
         finally:
-            orchestrator.fetch_ohlcv = real_fetch
+            orchestrator.fetch_ohlcv = canned
 
         db.expire_all()
         closed = (db.query(Position)
@@ -398,6 +451,8 @@ def _execution():
         return (f"risk %{risk / balance * 100:.2f}, R/R {reward / risk:.2f}, "
                 f"stop kaybı {loss:.2f}")
     finally:
+        orchestrator.fetch_ohlcv = real_fetch
+        orchestrator.fetch_order_book_depth = real_depth
         for model in (Position, WorkingOrder, BotEvent, EquityPoint):
             db.query(model).filter(model.bot_id == bot_id).delete(
                 synchronize_session=False)

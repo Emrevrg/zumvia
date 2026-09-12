@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import {
   Activity, BarChart3, Boxes, BrainCircuit, LineChart, LogOut, Lock,
   MessageSquare, Sparkles,
@@ -34,22 +34,33 @@ export function Shell({
   const pathname = usePathname();
   const router = useRouter();
   const [live, setLive] = useState(false);
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     if (!auth.token) {
       router.replace("/login");
       return;
     }
+    setEmail(auth.email);
     setLive(true);
     return openEventStream(() => setLive(true));
   }, [router]);
 
+  const moveSpotlight = (event: MouseEvent<HTMLDivElement>) => {
+    const x = `${Math.round((event.clientX / window.innerWidth) * 100)}%`;
+    const y = `${Math.round((event.clientY / window.innerHeight) * 100)}%`;
+    document.documentElement.style.setProperty("--spot-x", x);
+    document.documentElement.style.setProperty("--spot-y", y);
+  };
+
   return (
-    <div className="grid min-h-screen md:grid-cols-[250px_1fr]">
-      <aside className="sticky top-0 hidden h-screen flex-col gap-1 border-r border-white/10 bg-panel/95 p-5 backdrop-blur-xl md:flex">
+    <div className="grid min-h-screen md:grid-cols-[266px_1fr]" onMouseMove={moveSpotlight}>
+      <aside className="sticky top-0 hidden h-screen flex-col gap-1 border-r border-white/10 bg-[#08101a]/90 p-5 backdrop-blur-2xl md:flex">
+        <div className="glass-line absolute inset-x-0 top-0 h-px" />
         <div className="mb-5 flex items-center gap-3 px-1">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald to-[#00b894] text-lg font-extrabold text-[#04120a] shadow-glow">
-            V
+          <div className="relative grid h-11 w-11 place-items-center overflow-hidden rounded-2xl border border-emerald/25 bg-gradient-to-br from-emerald/25 via-info/10 to-purple-500/20 shadow-glow">
+            <img src="/logo.png" alt="" className="h-8 w-8 object-contain" />
+            <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
           </div>
           <div>
             <div className="text-[15px] font-bold tracking-widest">ZUMVIA</div>
@@ -67,8 +78,8 @@ export function Shell({
               href={href}
               className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
                 active
-                  ? "border-emerald/25 bg-gradient-to-r from-emerald/15 to-transparent text-emerald-mint"
-                  : "border-transparent text-slate-400 hover:bg-white/5 hover:text-white"
+                  ? "translate-x-1 border-emerald/25 bg-gradient-to-r from-emerald/15 via-info/5 to-transparent text-emerald-mint shadow-[inset_3px_0_0_#00e676]"
+                  : "border-transparent text-slate-400 hover:translate-x-1 hover:bg-white/5 hover:text-white"
               }`}
             >
               <Icon size={17} />
@@ -86,7 +97,7 @@ export function Shell({
             />
             {live ? "Canlı bağlantı" : "Bağlanıyor…"}
           </div>
-          <div className="truncate">{auth.email}</div>
+          <div className="truncate">{email}</div>
           <button
             className="btn w-full justify-center py-1.5 text-xs"
             onClick={() => {
@@ -99,10 +110,10 @@ export function Shell({
         </div>
       </aside>
 
-      <main className="w-full max-w-[1680px] px-4 pb-24 pt-5 md:px-7">
-        <header className="mb-5 flex flex-wrap items-center justify-between gap-4">
+      <main className="w-full max-w-[1680px] px-4 pb-24 pt-5 md:px-8 md:pt-7">
+        <header className="mb-6 flex animate-fadeUp flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-bold tracking-tight">{title}</h1>
+            <h1 className="bg-gradient-to-r from-white via-[#dfffee] to-info bg-clip-text text-[25px] font-extrabold tracking-tight text-transparent">{title}</h1>
             {subtitle && <p className="text-[12.5px] text-slate-400">{subtitle}</p>}
           </div>
           <div className="flex flex-wrap gap-2">{actions}</div>
@@ -111,17 +122,20 @@ export function Shell({
       </main>
 
       {/* Mobil alt gezinme */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 flex overflow-x-auto border-t border-white/10 bg-panel/95 p-2 backdrop-blur-xl md:hidden">
-        {NAV.map(({ href, label, Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex flex-1 flex-col items-center gap-1 px-3 py-1 text-[10px] text-slate-400"
-          >
-            <Icon size={17} />
-            {label}
-          </Link>
-        ))}
+      <nav className="fixed inset-x-2 bottom-2 z-50 flex overflow-x-auto rounded-2xl border border-white/10 bg-[#08101a]/90 p-2 shadow-panel backdrop-blur-2xl md:hidden">
+        {NAV.map(({ href, label, Icon }) => {
+          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex min-w-[66px] flex-1 flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] transition ${active ? "bg-emerald/10 text-emerald-mint" : "text-slate-400"}`}
+            >
+              <Icon size={17} />
+              {label}
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );
@@ -139,8 +153,9 @@ export function StatCard({
   tone?: string;
 }) {
   return (
-    <div className="panel relative overflow-hidden">
-      <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-emerald to-transparent opacity-70" />
+    <div className="panel panel-lift group relative overflow-hidden">
+      <span className="glass-line absolute inset-x-0 top-0 h-0.5 opacity-80" />
+      <span className="absolute -right-7 -top-7 h-24 w-24 rounded-full bg-emerald/5 blur-2xl transition group-hover:bg-info/10" />
       <div className="stat-label">{label}</div>
       <div className={`stat-value ${tone}`}>{value}</div>
       {foot && <div className="mt-1 text-[11.5px] text-slate-400">{foot}</div>}
