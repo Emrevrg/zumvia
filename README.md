@@ -82,8 +82,11 @@ ZUMVIA ikisini de çözer:
 - **Komut paleti** — `Ctrl+K` ile sayfa, görev, bot ve hızlı eylem araması.
 - **Kontrol merkezi** — güvenlik (acil fren, gerçek para yetkisi), anahtarlar,
   model sicili, raporlar, MCP bağlantıları ve değiştirilemez sınırlar.
+- **Finans çalışma alanı** — canlı piyasa panosu, enstrüman arama ve filtreleme,
+  fiyat grafikleri, haber akışı ve bağlama duyarlı finans asistanı tek ekranda.
 - **Tutarlı ikon sistemi** — emoji yok; tüm ikonlar tek çizgi kalınlığında SVG.
-- Node.js gerekmez; arayüz backend ile birlikte gelir ve mobilde de çalışır.
+- **Next.js arayüzü** masaüstü ve mobil için duyarlı, animasyonlu ve erişilebilir
+  bir deneyim sunar.
 
 ---
 
@@ -286,7 +289,7 @@ API adresi, kısa ömürlü token ve araç listesi) verir; CLI ajanı araçları
 
 ## MCP sunucusu
 
-Platformun **27 aracını** Model Context Protocol ile dışarı açar. Claude Code
+Platformun **69 aracını** Model Context Protocol ile dışarı açar. Claude Code
 (terminal veya masaüstü), Claude Desktop, Codex, Cursor — MCP destekleyen her
 araç bu platformun komutanına dönüşür.
 
@@ -877,7 +880,7 @@ cd backend
 python -m pytest tests -q
 ```
 
-302 test; risk kalkanının her kuralı, gösterge formülleri, LLM şema zorlaması,
+934 test; risk kalkanının her kuralı, gösterge formülleri, LLM şema zorlaması,
 ajan döngüsü, çoklu model konseyi (bölünme/veto/ayrışma), portföy kalkanı,
 toparlanma aşamaları, walk-forward doğrulama, canlı yetki kapıları, MCP
 taşıması ve erişim anahtarları ile API uçları kapsanır. Risk kalkanına dokunan her değişiklikten
@@ -928,7 +931,7 @@ backend/
 ├── mcp_server.py           # MCP sunucusu — stdio taşıması
 │                           #   (HTTP taşıması: app/api/routes_mcp.py → /mcp)
 ├── reports/                # üretilen raporlar (JSON + Markdown)
-├── tests/                  # 302 test
+├── tests/                  # 934 test
 └── requirements.txt
 
 frontend/                   # Opsiyonel Next.js arayüzü (komuta ekranı dahil)
