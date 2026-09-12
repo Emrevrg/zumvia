@@ -71,16 +71,42 @@ def open_risk_amount(position) -> float:
     Bir pozisyonun HÂLÂ risk altındaki tutarı.
     Stop başabaşa çekildiyse veya kâra geçtiyse risk sıfırlanmış sayılır —
     bu, iz süren stopun portföy ısısını gerçekten düşürdüğünü yansıtır.
+
+    Eski satırlarda giriş/stop/miktar NULL olabilir (yalnızca ekleyici göç);
+    o durumda kayıtlı risk tutarına düşülür, o da yoksa 0.0 — sayfa 500
+    vereceğine eksik ısıyla çalışır (pozisyon listede görünmeye devam eder).
     """
-    entry = float(position.entry_price)
-    stop = float(position.stop_loss)
-    qty = float(position.qty)
+    try:
+        entry = float(position.entry_price)
+        stop = float(position.stop_loss)
+        qty = float(position.qty)
+    except (TypeError, ValueError):
+        try:
+            return max(0.0, float(position.risk_amount or 0.0))
+        except (TypeError, ValueError):
+            return 0.0
     is_long = getattr(position.side, "value", position.side) == "long"
 
     per_unit = (entry - stop) if is_long else (stop - entry)
     if per_unit <= 0:          # stop kâr bölgesinde → risksiz işlem
         return 0.0
     return per_unit * qty
+
+
+def risk_is_measurable(position) -> bool:
+    """Açık pozisyon riskinin güvenilir biçimde hesaplanıp hesaplanamadığı."""
+    try:
+        values = (float(position.entry_price), float(position.stop_loss), float(position.qty))
+        if all(np.isfinite(value) for value in values):
+            return True
+    except (TypeError, ValueError):
+        pass
+
+    try:
+        stored = float(position.risk_amount)
+        return np.isfinite(stored) and stored > 0.0
+    except (TypeError, ValueError):
+        return False
 
 
 def portfolio_heat(positions: Iterable, equity: float) -> float:
@@ -166,6 +192,20 @@ def check_portfolio_limits(*, equity: float, new_risk_amount: float,
     """
     positions = list(open_positions)
 
+    # Açık bir pozisyonun riski ölçülemiyorsa onu sıfır varsaymak, portföy
+    # ısısını düşük gösterip yeni işleme kapı açar. Raporlama çalışmaya devam
+    # eder; ancak para etkileyen karar yolu güvenli biçimde kapalı kalır.
+    unmeasured = [getattr(p, "symbol", "?") for p in positions
+                  if not risk_is_measurable(p)]
+    if unmeasured:
+        return PortfolioVerdict(
+            False,
+            "Açık pozisyon risklerinden biri ölçülemiyor; giriş, stop ve miktar "
+            "onarılmadan yeni işlem açılamaz.",
+            "UNMEASURED_OPEN_RISK",
+            {"symbols": unmeasured},
+        )
+
     # --- Likidite / spread ---
     if spread_pct is not None and spread_pct > max_spread_pct:
         return PortfolioVerdict(
@@ -227,6 +267,8 @@ def portfolio_summary(positions: Iterable, equity: float) -> dict[str, Any]:
         "heat_pct": portfolio_heat(items, equity),
         "risk_amount": round(sum(open_risk_amount(p) for p in items), 4),
         "risk_free_positions": sum(1 for p in items if open_risk_amount(p) == 0.0),
+        "unmeasured_positions": sum(1 for p in items if not risk_is_measurable(p)),
+        "measurement_complete": all(risk_is_measurable(p) for p in items),
         "long": long_count,
         "short": len(items) - long_count,
         "clusters": clusters,

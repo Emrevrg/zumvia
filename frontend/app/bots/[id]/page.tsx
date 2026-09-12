@@ -85,7 +85,7 @@ export default function BotDetailPage() {
       {bot.risk.recovery_mode && (
         <div className="mb-4 rounded-r-lg border-l-2 border-warn bg-warn/10 px-4 py-3 text-[13px] text-[#ffdca6]">
           <b>Toparlanma modu aktif.</b> Risk %{bot.risk.effective_risk_pct}&apos;e indirildi, güven
-          eşiği %{(bot.risk.effective_min_confidence * 100).toFixed(0)}&apos;e yükseltildi. Sistem
+          eşiği %{((bot.risk.effective_min_confidence ?? 0.78) * 100).toFixed(0)}&apos;e yükseltildi. Sistem
           yalnızca A+ kurulumları alacak — kaybı telafi etmek için risk <b>artırılmaz</b>.
         </div>
       )}
@@ -96,7 +96,7 @@ export default function BotDetailPage() {
         <StatCard label="Getiri" value={pct(bot.capital.total_return_pct)}
           foot={`Gerçekleşen ${money(bot.capital.realized_pnl)}`}
           tone={toneOf(bot.capital.total_return_pct)} />
-        <StatCard label="Kazanma Oranı" value={`%${bot.stats.win_rate_pct.toFixed(1)}`}
+        <StatCard label="Kazanma Oranı" value={`%${(bot.stats.win_rate_pct ?? 0).toFixed(1)}`}
           foot={`${bot.stats.wins}K / ${bot.stats.losses}Z`} />
         <StatCard
           label="Durum"
@@ -201,7 +201,7 @@ export default function BotDetailPage() {
                     {p.pnl >= 0 ? "+" : ""}{money(p.pnl)}
                   </td>
                   <td className={`p-2 text-right font-mono ${toneOf(p.r_multiple)}`}>
-                    {p.r_multiple.toFixed(2)}R
+                    {(p.r_multiple ?? 0).toFixed(2)}R
                   </td>
                   <td className="p-2">{CLOSE_REASON[p.close_reason] ?? p.close_reason}</td>
                 </tr>

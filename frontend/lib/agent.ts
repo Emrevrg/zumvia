@@ -212,6 +212,9 @@ export const agentApi = {
     api(`/api/agent/sessions/${id}`, { method: "DELETE" }),
   messages: (id: number) =>
     api<AgentMessage[]>(`/api/agent/sessions/${id}/messages`),
+  get: (id: number) => api<AgentSession>(`/api/agent/sessions/${id}`),
+  stop: (id: number) =>
+    api(`/api/agent/sessions/${id}/stop`, { method: "POST" }),
   send: (id: number, content: string) =>
     api(`/api/agent/sessions/${id}/messages`, { method: "POST", body: { content } }),
   tick: (id: number) =>

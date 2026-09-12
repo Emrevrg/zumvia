@@ -40,7 +40,7 @@ export default function VaultPage() {
   const filtered = useMemo(() => {
     if (!q.trim()) return providers;
     const s = q.toLowerCase();
-    return providers.filter(p => p.label.toLowerCase().includes(s) || p.id.toLowerCase().includes(s) || p.models.some(m => m.toLowerCase().includes(s)));
+    return providers.filter(p => p.label.toLowerCase().includes(s) || p.id.toLowerCase().includes(s) || (p.models ?? []).some(m => m.toLowerCase().includes(s)));
   }, [providers, q]);
 
   async function save() {
@@ -140,7 +140,7 @@ export default function VaultPage() {
                     {filtered.map((p) => {
                       const h = health[p.id];
                       const badge = h ? (h.healthy ? " ●" : ` ● ${h.cooldown_secs_left}s soğuma`) : "";
-                      return <option key={p.id} value={p.id}>{p.label}{badge} — {p.models[0] ?? ""}</option>;
+                      return <option key={p.id} value={p.id}>{p.label}{badge} — {(p.models ?? [])[0] ?? ""}</option>;
                     })}
                   </select>
                   {provider?.note && <p className="text-[11px] text-slate-400">{provider.note}</p>}
@@ -165,7 +165,7 @@ export default function VaultPage() {
                     <select className="input flex-1" value={String(form.model)}
                       onChange={(e) => setF({ model: e.target.value })}>
                       <option value="">— seçin veya elle yazın —</option>
-                      {provider?.models.map((m) => <option key={m} value={m}>{m}</option>)}
+                      {(provider?.models ?? []).map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </div>
                   <input className="input font-mono text-[12px]" value={String(form.model)}

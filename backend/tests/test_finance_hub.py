@@ -88,7 +88,10 @@ def test_borsa_listesi_hatasinda_cozumleme_durmaz(monkeypatch) -> None:
     import app.layers.l1_market_data as l1
     monkeypatch.setattr(l1, "get_exchange", patlayan)
     inst = hub.resolve("DOGE")
-    assert inst.symbol == "DOGE"
+    # DOGE tahtada bilinen sembol olduğu için ağsız da kriptoya çözülür
+    # (tahta büyümeden önce burası "DOGE" hissesine düşerdi).
+    assert inst.symbol == "DOGE/USDT"
+    assert inst.market == "crypto"
 
 
 def test_parite_varligi_onbellege_alinir(monkeypatch) -> None:

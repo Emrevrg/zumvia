@@ -46,7 +46,7 @@ from ..schemas import (
     PlaybookDeployIn,
     QuickStartIn,
 )
-from .deps import current_user, user_bot
+from .deps import current_user, num, user_bot
 
 log = get_logger("zumvia.api.bots")
 
@@ -89,8 +89,25 @@ def serialize_bot(db: Session, bot: Bot) -> dict[str, Any]:
         .filter(Position.bot_id == bot.id, Position.status == PositionStatus.CLOSED)
         .all()
     )
-    wins = [p for p in closed if p.pnl > 0]
-    realized = sum(p.pnl for p in closed)
+    wins = [p for p in closed if num(p.pnl) > 0]
+    realized = sum(num(p.pnl) for p in closed)
+
+    # Etkin limitler risk kalkanından gelir; eski satırdaki NULL bunları
+    # çökertmemeli — o durumda muhafazakâr tavan gösterilir ve olay loglanır.
+    try:
+        eff_risk = effective_risk_pct(bot)
+    except (TypeError, ValueError, AttributeError) as exc:  # noqa: BLE001
+        log.warning("etkin risk hesaplanamadı (bot #%s): %s", bot.id, exc)
+        eff_risk = min(num(bot.risk_pct, 1.0), settings.hard_max_risk_pct)
+    try:
+        eff_conf = effective_min_confidence(bot)
+    except (TypeError, ValueError, AttributeError) as exc:  # noqa: BLE001
+        log.warning("etkin güven hesaplanamadı (bot #%s): %s", bot.id, exc)
+        eff_conf = max(num(bot.min_confidence, 0.75), settings.hard_min_confidence)
+
+    balance = num(bot.paper_balance)
+    initial = num(bot.initial_balance)
+    peak = num(bot.peak_equity)
 
     return {
         "id": bot.id,
@@ -113,32 +130,32 @@ def serialize_bot(db: Session, bot: Bot) -> dict[str, Any]:
         "min_agree": bot.min_agree,
         "strategy_notes": bot.strategy_notes,
         "risk": {
-            "risk_pct": bot.risk_pct,
-            "effective_risk_pct": effective_risk_pct(bot),
-            "daily_loss_limit_pct": bot.daily_loss_limit_pct,
-            "min_confidence": bot.min_confidence,
-            "effective_min_confidence": effective_min_confidence(bot),
-            "min_rr": bot.min_rr,
-            "max_open_positions": bot.max_open_positions,
-            "max_trades_per_day": bot.max_trades_per_day,
-            "max_drawdown_pct": bot.max_drawdown_pct,
+            "risk_pct": num(bot.risk_pct, 1.0),
+            "effective_risk_pct": eff_risk,
+            "daily_loss_limit_pct": num(bot.daily_loss_limit_pct, 3.0),
+            "min_confidence": num(bot.min_confidence, 0.75),
+            "effective_min_confidence": eff_conf,
+            "min_rr": num(bot.min_rr, 2.0),
+            "max_open_positions": int(num(bot.max_open_positions, 1)),
+            "max_trades_per_day": int(num(bot.max_trades_per_day, 8)),
+            "max_drawdown_pct": num(bot.max_drawdown_pct, 15.0),
             "trailing_stop": bot.trailing_stop,
-            "breakeven_at_r": bot.breakeven_at_r,
+            "breakeven_at_r": num(bot.breakeven_at_r, 0.0),
             "recovery_mode": bot.recovery_mode,
-            "consecutive_losses": bot.consecutive_losses,
+            "consecutive_losses": int(num(bot.consecutive_losses, 0)),
             "locked_until": bot.locked_until.isoformat() if bot.locked_until else None,
             "lock_reason": bot.lock_reason,
-            "day_trades": bot.day_trades,
+            "day_trades": int(num(bot.day_trades, 0)),
         },
         "capital": {
-            "initial_balance": bot.initial_balance,
-            "balance": round(bot.paper_balance, 6),
-            "peak_equity": round(bot.peak_equity, 6),
-            "day_start_equity": round(bot.day_start_equity, 6),
+            "initial_balance": initial,
+            "balance": round(balance, 6),
+            "peak_equity": round(peak, 6),
+            "day_start_equity": round(num(bot.day_start_equity, initial), 6),
             "realized_pnl": round(realized, 6),
             "total_return_pct": round(
-                (bot.paper_balance - bot.initial_balance) / bot.initial_balance * 100.0, 3
-            ) if bot.initial_balance else 0.0,
+                (balance - initial) / initial * 100.0, 3
+            ) if initial else 0.0,
         },
         "stats": {
             "total_trades": len(closed),
@@ -156,18 +173,22 @@ def serialize_bot(db: Session, bot: Bot) -> dict[str, Any]:
 def serialize_position(p: Position, price: float | None = None) -> dict[str, Any]:
     unrealized = None
     if price and p.status == PositionStatus.OPEN:
-        unrealized = ((price - p.entry_price) if p.side == Side.LONG
-                      else (p.entry_price - price)) * p.qty
+        qty = num(p.qty)
+        entry = num(p.entry_price)
+        if qty and entry:
+            unrealized = ((price - entry) if p.side == Side.LONG
+                          else (entry - price)) * qty
     return {
         "id": p.id, "bot_id": p.bot_id, "symbol": p.symbol, "side": p.side.value,
-        "status": p.status.value, "mode": p.mode.value, "qty": p.qty,
-        "entry_price": p.entry_price, "stop_loss": p.stop_loss,
-        "take_profit": p.take_profit, "initial_stop": p.initial_stop,
-        "risk_amount": p.risk_amount, "notional": p.notional,
-        "exit_price": p.exit_price, "pnl": round(p.pnl, 6),
-        "pnl_pct": round(p.pnl_pct, 4), "r_multiple": round(p.r_multiple, 3),
-        "fees": round(p.fees, 6), "confidence": p.confidence,
-        "reasoning": p.reasoning, "close_reason": p.close_reason,
+        "status": p.status.value, "mode": p.mode.value, "qty": num(p.qty),
+        "entry_price": num(p.entry_price), "stop_loss": num(p.stop_loss),
+        "take_profit": num(p.take_profit), "initial_stop": num(p.initial_stop),
+        "risk_amount": num(p.risk_amount), "notional": num(p.notional),
+        "exit_price": num(p.exit_price) if p.exit_price is not None else None,
+        "pnl": round(num(p.pnl), 6),
+        "pnl_pct": round(num(p.pnl_pct), 4), "r_multiple": round(num(p.r_multiple), 3),
+        "fees": round(num(p.fees), 6), "confidence": num(p.confidence),
+        "reasoning": p.reasoning or "", "close_reason": p.close_reason or "",
         "unrealized_pnl": round(unrealized, 6) if unrealized is not None else None,
         "opened_at": p.opened_at.isoformat() if p.opened_at else None,
         "closed_at": p.closed_at.isoformat() if p.closed_at else None,
@@ -679,6 +700,6 @@ def equity_curve(bot: Bot = Depends(user_bot), db: Session = Depends(get_db),
     )
     return [
         {"t": p.ts.isoformat() if p.ts else None,
-         "equity": round(p.equity, 6), "balance": round(p.balance, 6)}
+         "equity": round(num(p.equity), 6), "balance": round(num(p.balance), 6)}
         for p in reversed(rows)
     ]

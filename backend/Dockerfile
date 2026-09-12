@@ -1,5 +1,5 @@
 # ============================================================================
-#  VERDANTIX QUANT — Backend imajı
+#  ZUMVIA — Backend imajı
 #  İki aşamalı: bağımlılıklar ayrı katmanda derlenir, çalışma imajı ince kalır.
 # ============================================================================
 
@@ -25,7 +25,7 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     TZ=UTC \
-    VQ_DATABASE_URL=sqlite:////app/data/verdantix.db \
+    VQ_DATABASE_URL=sqlite:////app/data/zumvia.db \
     VQ_SECRETS_FILE=/app/data/secrets.env
 
 WORKDIR /app
@@ -40,11 +40,11 @@ COPY . .
 # Kök olmayan kullanıcı + kalıcı veri dizini.
 # /app/data'nın sahipliği imajda ayarlanır; Docker adlandırılmış birimi ilk
 # oluştururken bu sahipliği devralır, böylece izin hatası yaşanmaz.
-RUN useradd -m -u 1000 verdantix \
+RUN useradd -m -u 1000 zumvia \
  && mkdir -p /app/data \
- && chown -R verdantix:verdantix /app
+ && chown -R zumvia:zumvia /app
 
-USER verdantix
+USER zumvia
 
 EXPOSE 8000
 

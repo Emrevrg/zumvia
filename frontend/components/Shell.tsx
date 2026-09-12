@@ -4,14 +4,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type MouseEvent } from "react";
 import {
-  Activity, BarChart3, Boxes, BrainCircuit, LineChart, LogOut, Lock,
+  Activity, BarChart3, Boxes, BrainCircuit, Globe, LineChart, LogOut, Lock,
   MessageSquare, Sparkles,
 } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 import { auth, openEventStream } from "@/lib/api";
 
 const NAV = [
   { href: "/command", label: "Komuta", Icon: MessageSquare },
   { href: "/", label: "Portföy", Icon: Activity },
+  { href: "/finance", label: "Finans", Icon: Globe },
   { href: "/bots", label: "Botlar", Icon: Boxes },
   { href: "/systems", label: "Sistem botları", Icon: BrainCircuit },
   { href: "/bots/new", label: "Yeni bot", Icon: Sparkles },
@@ -59,7 +61,7 @@ export function Shell({
         <div className="glass-line absolute inset-x-0 top-0 h-px" />
         <div className="mb-5 flex items-center gap-3 px-1">
           <div className="relative grid h-11 w-11 place-items-center overflow-hidden rounded-2xl border border-emerald/25 bg-gradient-to-br from-emerald/25 via-info/10 to-purple-500/20 shadow-glow">
-            <img src="/logo.png" alt="" className="h-8 w-8 object-contain" />
+            <BrandMark size={34} />
             <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
           </div>
           <div>

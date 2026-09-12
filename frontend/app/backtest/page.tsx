@@ -115,6 +115,14 @@ export default function BacktestPage() {
             {report.verdict}
           </div>
 
+          {Number(m.trade_count ?? 0) === 0 && (
+            <div className="panel mb-4 text-slate-400">
+              {typeof m.note === "string" && m.note
+                ? m.note
+                : "Bu dönemde kurulum oluşmadı — işlem yapmamak da bir karardır."}
+            </div>
+          )}
+
           {Number(m.trade_count ?? 0) > 0 && (
             <>
               <div className="mb-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -161,7 +169,7 @@ export default function BacktestPage() {
                             {t.pnl >= 0 ? "+" : ""}{money(t.pnl)}
                           </td>
                           <td className={`p-2 text-right font-mono ${toneOf(t.r_multiple)}`}>
-                            {t.r_multiple.toFixed(2)}R
+                            {(t.r_multiple ?? 0).toFixed(2)}R
                           </td>
                           <td className="p-2 text-slate-400">{t.strategy}</td>
                         </tr>

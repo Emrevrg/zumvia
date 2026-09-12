@@ -7,9 +7,10 @@
  * içinde sabittir ve testten geçer; ajan yalnızca koşullara uyanı seçer.
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { Search } from "lucide-react";
 import { Shell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { agentApi, AgentCatalog, Playbook } from "@/lib/agent";
@@ -17,9 +18,27 @@ import { agentApi, AgentCatalog, Playbook } from "@/lib/agent";
 export default function SystemsPage() {
   const { data: catalog } = useSWR<AgentCatalog>("agent-catalog", agentApi.catalog);
   const [selected, setSelected] = useState<Playbook | null>(null);
+  const [query, setQuery] = useState("");
+  const [tag, setTag] = useState("Tümü");
+  const [limit, setLimit] = useState(12);
 
   const playbooks = catalog?.playbooks ?? [];
   const cap = catalog?.capabilities;
+  const tags = useMemo(
+    () => ["Tümü", ...Array.from(new Set(playbooks.flatMap((pb) => pb.tags ?? []))).sort()],
+    [playbooks],
+  );
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase("tr-TR");
+    return playbooks.filter((pb) => {
+      const matchesTag = tag === "Tümü" || (pb.tags ?? []).includes(tag);
+      const haystack = [pb.label, pb.thesis, pb.horizon, ...(pb.strategies ?? []), ...(pb.tags ?? [])]
+        .join(" ").toLocaleLowerCase("tr-TR");
+      return matchesTag && (!needle || haystack.includes(needle));
+    });
+  }, [playbooks, query, tag]);
+
+  useEffect(() => setLimit(12), [query, tag]);
 
   return (
     <Shell title="Sistem botları" subtitle="kütüphane">
@@ -34,8 +53,29 @@ export default function SystemsPage() {
         </div>
       </div>
 
+      <div className="panel mb-5 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative min-w-[230px] flex-1">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input className="input pl-9" value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder="Sistem, strateji veya vade ara…" />
+          </label>
+          <div className="flex max-w-full gap-1.5 overflow-x-auto py-1">
+            {tags.map((item) => (
+              <button key={item} onClick={() => setTag(item)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-[11.5px] transition ${
+                  tag === item ? "bg-emerald/15 text-emerald-mint" : "bg-white/[0.035] text-slate-400 hover:text-white"
+                }`}>
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-2 text-[11px] text-slate-500">{filtered.length} sistem eşleşti</div>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
-        {playbooks.map((pb) => (
+        {filtered.slice(0, limit).map((pb) => (
           <article key={pb.id} className="panel flex flex-col gap-3">
             <header className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -70,6 +110,17 @@ export default function SystemsPage() {
           </article>
         ))}
       </div>
+
+      {filtered.length === 0 && (
+        <div className="panel text-center text-slate-400">Bu aramayla eşleşen sistem bulunamadı.</div>
+      )}
+      {limit < filtered.length && (
+        <div className="mt-5 flex justify-center">
+          <button className="btn px-6" onClick={() => setLimit((n) => n + 12)}>
+            12 sistem daha göster
+          </button>
+        </div>
+      )}
 
       {selected && <DeployDialog playbook={selected} onClose={() => setSelected(null)} />}
     </Shell>

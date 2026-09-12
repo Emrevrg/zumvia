@@ -3,6 +3,9 @@ API Bağımlılıkları — Oturum ve kullanıcı çözümleme
 """
 from __future__ import annotations
 
+import math
+from typing import Any
+
 from fastapi import Depends, HTTPException, Query, WebSocket, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -12,6 +15,22 @@ from ..core.security import decode_access_token
 from ..models import Bot, User
 
 bearer = HTTPBearer(auto_error=False)
+
+
+def num(value: Any, default: float = 0.0) -> float:
+    """
+    Eski satırlardaki NULL sayıları güvenli sayıya çevirir.
+
+    Şema göçü yalnızca ekleyicidir (`ADD COLUMN`); eski satırlarda yeni
+    kolonlar NULL kalır. Serileştirici `round(x)` / `x + y` yaparken NULL
+    500 üretir ve panel çöker. Bu yardımcı, okuma yolunu sağlamlaştırır —
+    veriye YAZMAZ, yalnızca sunumda varsayılan kullanır.
+    """
+    try:
+        x = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return default
+    return x if math.isfinite(x) else default
 
 
 def current_user(

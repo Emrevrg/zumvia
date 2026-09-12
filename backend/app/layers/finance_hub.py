@@ -80,24 +80,34 @@ DEFAULT_BOARD: tuple[Instrument, ...] = (
     Instrument("BNB/USDT", "crypto", "binance", "BNB", "kripto"),
     Instrument("XRP/USDT", "crypto", "binance", "XRP", "kripto"),
     Instrument("AVAX/USDT", "crypto", "binance", "Avalanche", "kripto"),
+    Instrument("DOGE/USDT", "crypto", "binance", "Dogecoin", "kripto"),
+    Instrument("LINK/USDT", "crypto", "binance", "Chainlink", "kripto"),
+    Instrument("TON/USDT", "crypto", "binance", "Toncoin", "kripto"),
+    Instrument("ADA/USDT", "crypto", "binance", "Cardano", "kripto"),
     Instrument("AAPL", "stock", "yahoo", "Apple", "hisse"),
     Instrument("MSFT", "stock", "yahoo", "Microsoft", "hisse"),
     Instrument("NVDA", "stock", "yahoo", "NVIDIA", "hisse"),
     Instrument("GOOGL", "stock", "yahoo", "Alphabet", "hisse"),
     Instrument("AMZN", "stock", "yahoo", "Amazon", "hisse"),
     Instrument("TSLA", "stock", "yahoo", "Tesla", "hisse"),
+    Instrument("THYAO.IS", "stock", "yahoo", "Türk Hava Yolları", "hisse"),
+    Instrument("ASELS.IS", "stock", "yahoo", "Aselsan", "hisse"),
 )
 
-# Piyasanın genel havasını okumak için: endeksler, emtia, kur.
+# Piyasanın genel havasını okumak için: endeksler, emtia, kur, korku.
 PULSE: tuple[Instrument, ...] = (
     Instrument("^GSPC", "stock", "yahoo", "S&P 500", "endeks"),
     Instrument("^IXIC", "stock", "yahoo", "Nasdaq", "endeks"),
     Instrument("^DJI", "stock", "yahoo", "Dow Jones", "endeks"),
+    Instrument("^GDAXI", "stock", "yahoo", "DAX", "endeks"),
     Instrument("XU100.IS", "stock", "yahoo", "BIST 100", "endeks"),
+    Instrument("^VIX", "stock", "yahoo", "VIX (korku)", "endeks"),
     Instrument("GC=F", "stock", "yahoo", "Altın (ons)", "emtia"),
+    Instrument("SI=F", "stock", "yahoo", "Gümüş (ons)", "emtia"),
     Instrument("CL=F", "stock", "yahoo", "Brent petrol", "emtia"),
     Instrument("USDTRY=X", "stock", "yahoo", "USD/TRY", "kur"),
     Instrument("EURUSD=X", "stock", "yahoo", "EUR/USD", "kur"),
+    Instrument("EURTRY=X", "stock", "yahoo", "EUR/TRY", "kur"),
 )
 
 _BY_KEY: dict[str, Instrument] = {i.key(): i for i in (*DEFAULT_BOARD, *PULSE)}

@@ -26,6 +26,7 @@ from typing import Any
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from ..api.deps import num
 from ..core.config import BASE_DIR
 from ..core.logging import get_logger
 from ..core.safety import safety_snapshot
@@ -90,11 +91,11 @@ def build_report(db: Session, user: User, *, period_days: int = 7,
               .filter(AuditLog.user_id == user.id)
               .order_by(desc(AuditLog.id)).limit(20).all())
 
-    equity = sum(b.paper_balance for b in bots)
-    initial = sum(b.initial_balance for b in bots)
-    wins = [p for p in closed if p.pnl > 0]
-    gross_win = sum(p.pnl for p in wins)
-    gross_loss = abs(sum(p.pnl for p in closed if p.pnl <= 0))
+    equity = sum(num(b.paper_balance) for b in bots)
+    initial = sum(num(b.initial_balance) for b in bots)
+    wins = [p for p in closed if num(p.pnl) > 0]
+    gross_win = sum(num(p.pnl) for p in wins)
+    gross_loss = abs(sum(num(p.pnl) for p in closed if num(p.pnl) <= 0))
 
     sum(
         ((p.take_profit - p.entry_price) * 0.0) for p in open_positions
@@ -105,24 +106,25 @@ def build_report(db: Session, user: User, *, period_days: int = 7,
     per_bot = []
     for bot in bots:
         bot_closed = [p for p in closed if p.bot_id == bot.id]
-        plan = build_recovery_plan(bot, bot.paper_balance,
+        bal = num(bot.paper_balance)
+        init = num(bot.initial_balance)
+        plan = build_recovery_plan(bot, bal,
                                    expectancy_r=measure_expectancy(bot_closed))
         per_bot.append({
             "id": bot.id, "name": bot.name, "symbol": bot.symbol,
             "timeframe": bot.timeframe, "market": bot.market,
             "status": bot.status.value, "mode": bot.mode.value,
             "decision_mode": bot.decision_mode, "council_mode": bot.council_mode,
-            "balance": round(bot.paper_balance, 2),
-            "initial_balance": round(bot.initial_balance, 2),
-            "return_pct": round((bot.paper_balance - bot.initial_balance) /
-                                bot.initial_balance * 100, 2) if bot.initial_balance else 0.0,
+            "balance": round(bal, 2),
+            "initial_balance": round(init, 2),
+            "return_pct": round((bal - init) / init * 100, 2) if init else 0.0,
             "trades": len(bot_closed),
             "recovery": plan.to_dict(),
             "risk": {
-                "risk_pct": bot.risk_pct,
-                "daily_loss_limit_pct": bot.daily_loss_limit_pct,
-                "max_drawdown_pct": bot.max_drawdown_pct,
-                "max_portfolio_heat_pct": bot.max_portfolio_heat_pct,
+                "risk_pct": num(bot.risk_pct, 1.0),
+                "daily_loss_limit_pct": num(bot.daily_loss_limit_pct, 3.0),
+                "max_drawdown_pct": num(bot.max_drawdown_pct, 15.0),
+                "max_portfolio_heat_pct": num(bot.max_portfolio_heat_pct, 3.0),
                 "locked_until": bot.locked_until.isoformat() if bot.locked_until else None,
                 "lock_reason": bot.lock_reason,
             },
@@ -158,33 +160,33 @@ def build_report(db: Session, user: User, *, period_days: int = 7,
             "win_rate_pct": round(len(wins) / len(closed) * 100, 2) if closed else 0.0,
             "profit_factor": round(gross_win / gross_loss, 3) if gross_loss else (
                 999.0 if gross_win else 0.0),
-            "expectancy_r": round(measure_expectancy(closed), 3),
-            "best_trade": round(max((p.pnl for p in closed), default=0.0), 2),
-            "worst_trade": round(min((p.pnl for p in closed), default=0.0), 2),
+            "expectancy_r": round(num(measure_expectancy(closed)), 3),
+            "best_trade": round(max((num(p.pnl) for p in closed), default=0.0), 2),
+            "worst_trade": round(min((num(p.pnl) for p in closed), default=0.0), 2),
         },
         "portfolio_risk": {**portfolio_summary(open_positions, equity),
                            "equity": round(equity, 2)},
         "bots": per_bot,
         "open_positions": [{
             "bot_id": p.bot_id, "symbol": p.symbol, "side": p.side.value,
-            "entry": p.entry_price, "stop_loss": p.stop_loss,
-            "take_profit": p.take_profit, "qty": p.qty,
-            "risk_amount": round(p.risk_amount, 4),
+            "entry": num(p.entry_price), "stop_loss": num(p.stop_loss),
+            "take_profit": num(p.take_profit), "qty": num(p.qty),
+            "risk_amount": round(num(p.risk_amount), 4),
             "partial_taken": p.partial_taken,
             "opened_at": p.opened_at.isoformat() if p.opened_at else None,
         } for p in open_positions],
         "recent_trades": [{
             "bot_id": p.bot_id, "symbol": p.symbol, "side": p.side.value,
-            "entry": p.entry_price, "exit": p.exit_price,
-            "pnl": round(p.pnl, 4), "r": round(p.r_multiple, 3),
-            "reason": p.close_reason,
+            "entry": num(p.entry_price), "exit": num(p.exit_price),
+            "pnl": round(num(p.pnl), 4), "r": round(num(p.r_multiple), 3),
+            "reason": p.close_reason or "",
             "closed_at": p.closed_at.isoformat() if p.closed_at else None,
         } for p in closed[:25]],
         "decisions": [{
             "decision_id": d.decision_id, "ts": d.ts.isoformat() if d.ts else None,
             "symbol": d.symbol, "action": d.action,
-            "confidence": round(d.confidence, 3), "executed": d.executed,
-            "veto_reason": d.veto_reason,
+            "confidence": round(num(d.confidence), 3), "executed": d.executed,
+            "veto_reason": d.veto_reason or "",
         } for d in decisions],
         "errors": [{
             "bot_id": e.bot_id, "ts": e.ts.isoformat() if e.ts else None,

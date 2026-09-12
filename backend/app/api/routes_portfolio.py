@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from ..core.db import get_db
 from ..models import Bot, BotStatus, EquityPoint, Position, PositionStatus, User
-from .deps import current_user
+from .deps import current_user, num
 
 router = APIRouter(prefix="/api/portfolio", tags=["Portföy"])
 
@@ -38,14 +38,14 @@ def overview(db: Session = Depends(get_db), user: User = Depends(current_user)) 
             .all()
         )
 
-    wins = [p for p in closed if p.pnl > 0]
-    losses = [p for p in closed if p.pnl <= 0]
-    gross_win = sum(p.pnl for p in wins)
-    gross_loss = abs(sum(p.pnl for p in losses))
+    wins = [p for p in closed if num(p.pnl) > 0]
+    losses = [p for p in closed if num(p.pnl) <= 0]
+    gross_win = sum(num(p.pnl) for p in wins)
+    gross_loss = abs(sum(num(p.pnl) for p in losses))
 
-    total_balance = sum(b.paper_balance for b in bots)
-    total_initial = sum(b.initial_balance for b in bots)
-    peak = sum(b.peak_equity for b in bots)
+    total_balance = sum(num(b.paper_balance) for b in bots)
+    total_initial = sum(num(b.initial_balance) for b in bots)
+    peak = sum(num(b.peak_equity) for b in bots)
 
     # Son 30 günün günlük PnL dağılımı
     since = datetime.now(UTC) - timedelta(days=30)
@@ -54,7 +54,7 @@ def overview(db: Session = Depends(get_db), user: User = Depends(current_user)) 
         if p.closed_at:
             closed_at = p.closed_at if p.closed_at.tzinfo else p.closed_at.replace(tzinfo=UTC)
             if closed_at >= since:
-                daily[closed_at.strftime("%Y-%m-%d")] += p.pnl
+                daily[closed_at.strftime("%Y-%m-%d")] += num(p.pnl)
 
     return {
         "bot_count": len(bots),
@@ -78,9 +78,9 @@ def overview(db: Session = Depends(get_db), user: User = Depends(current_user)) 
             "win_rate_pct": round(len(wins) / len(closed) * 100.0, 2) if closed else 0.0,
             "profit_factor": round(gross_win / gross_loss, 3) if gross_loss > 0
             else (999.0 if gross_win > 0 else 0.0),
-            "avg_r": round(sum(p.r_multiple for p in closed) / len(closed), 3) if closed else 0.0,
-            "best_trade": round(max((p.pnl for p in closed), default=0.0), 2),
-            "worst_trade": round(min((p.pnl for p in closed), default=0.0), 2),
+            "avg_r": round(sum(num(p.r_multiple) for p in closed) / len(closed), 3) if closed else 0.0,
+            "best_trade": round(max((num(p.pnl) for p in closed), default=0.0), 2),
+            "worst_trade": round(min((num(p.pnl) for p in closed), default=0.0), 2),
             "open_positions": len(open_positions),
         },
         "daily_pnl": [{"date": k, "pnl": round(v, 2)} for k, v in sorted(daily.items())],
@@ -88,10 +88,10 @@ def overview(db: Session = Depends(get_db), user: User = Depends(current_user)) 
             {
                 "id": b.id, "name": b.name, "symbol": b.symbol, "status": b.status.value,
                 "mode": b.mode.value, "decision_mode": b.decision_mode,
-                "balance": round(b.paper_balance, 2),
+                "balance": round(num(b.paper_balance), 2),
                 "return_pct": round(
-                    (b.paper_balance - b.initial_balance) / b.initial_balance * 100.0, 2
-                ) if b.initial_balance else 0.0,
+                    (num(b.paper_balance) - num(b.initial_balance)) / num(b.initial_balance) * 100.0, 2
+                ) if num(b.initial_balance) else 0.0,
                 "recovery_mode": b.recovery_mode,
             }
             for b in bots
@@ -117,7 +117,7 @@ def combined_equity(db: Session = Depends(get_db), user: User = Depends(current_
     buckets: dict[str, float] = defaultdict(float)
     for point in rows:
         key = point.ts.strftime("%Y-%m-%dT%H:%M") if point.ts else ""
-        buckets[key] += point.equity
+        buckets[key] += num(point.equity)
     return [{"t": k, "equity": round(v, 4)} for k, v in sorted(buckets.items())][-limit:]
 
 

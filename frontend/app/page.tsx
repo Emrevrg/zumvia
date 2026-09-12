@@ -70,7 +70,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-3 divide-x divide-white/10 bg-black/10 px-2 py-3 text-center text-xs text-slate-400">
               <span className="flex items-center justify-center gap-1.5"><Zap size={13} className="text-warn" /> Anlık karar akışı</span>
               <span className="flex items-center justify-center gap-1.5"><Bot size={13} className="text-info" /> {data.bot_count} bot</span>
-              <span className="flex items-center justify-center gap-1.5"><Activity size={13} className="text-emerald" /> %{data.performance.win_rate_pct.toFixed(1)} başarı</span>
+              <span className="flex items-center justify-center gap-1.5"><Activity size={13} className="text-emerald" /> %{(data.performance.win_rate_pct ?? 0).toFixed(1)} başarı</span>
             </div>
           </section>
 
@@ -88,13 +88,13 @@ export default function DashboardPage() {
             />
             <StatCard
               label="Kazanma Oranı"
-              value={`%${data.performance.win_rate_pct.toFixed(1)}`}
+              value={`%${(data.performance.win_rate_pct ?? 0).toFixed(1)}`}
               foot={`${data.performance.wins}K / ${data.performance.losses}Z · ${data.performance.total_trades} işlem`}
             />
             <StatCard
               label="Kâr Faktörü"
-              value={data.performance.profit_factor >= 999 ? "∞" : data.performance.profit_factor.toFixed(2)}
-              foot={`Ort. ${data.performance.avg_r.toFixed(2)}R · DD %${data.capital.drawdown_pct.toFixed(2)}`}
+              value={(data.performance.profit_factor ?? 0) >= 999 ? "∞" : (data.performance.profit_factor ?? 0).toFixed(2)}
+              foot={`Ort. ${(data.performance.avg_r ?? 0).toFixed(2)}R · DD %${(data.capital.drawdown_pct ?? 0).toFixed(2)}`}
               tone={data.performance.profit_factor >= 1.5 ? "text-emerald" : "text-slate-400"}
             />
           </div>

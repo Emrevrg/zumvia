@@ -1,5 +1,5 @@
 # ============================================================================
-#  VERDANTIX QUANT — Next.js arayüzü (isteğe bağlı)
+#  ZUMVIA — Next.js arayüzü (isteğe bağlı)
 #  Yerleşik arayüz zaten backend :8000 üzerinde çalışır; bu imaj yalnızca
 #  ayrı bir web katmanı isteyenler içindir:  docker compose --profile web up -d
 # ============================================================================

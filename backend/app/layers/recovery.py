@@ -141,9 +141,9 @@ def build_recovery_plan(bot, equity: float, *, expectancy_r: float = 0.25,
 
     peak = max(float(bot.peak_equity or 0.0), float(equity))
     drawdown = ((peak - equity) / peak * 100.0) if peak > 0 else 0.0
-    phase = phase_for(drawdown, int(getattr(bot, "consecutive_losses", 0)))
+    phase = phase_for(drawdown, int(getattr(bot, "consecutive_losses", 0) or 0))
 
-    base_risk = min(float(bot.risk_pct), settings.hard_max_risk_pct)
+    base_risk = min(float(bot.risk_pct or 0.0), settings.hard_max_risk_pct)
     effective_risk = max(0.05, round(base_risk * phase.risk_multiplier, 4))
 
     # Başabaş için gereken kazanç: kayıp asimetrisi

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createChart, ColorType, type IChartApi, type ISeriesApi, LineStyle,
 } from "lightweight-charts";
@@ -35,9 +35,16 @@ export function PriceChart({
   const boxRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const [error, setError] = useState("");
+  // Seviyeler her render'da yeni dizi olur; etkiyi stabilize et.
+  const levelKey = useMemo(
+    () => levels.map((l) => `${l.price}:${l.color}:${l.title}`).join("|"),
+    [levels],
+  );
 
   useEffect(() => {
     if (!boxRef.current) return;
+    setError("");
 
     const chart = createChart(boxRef.current, {
       height,
@@ -80,28 +87,36 @@ export function PriceChart({
 
     let cancelled = false;
     (async () => {
-      const data = await api<CandlePayload>(
-        `/api/market/candles?market=${market}&exchange=${exchange}` +
-          `&symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}&limit=300`,
-      );
-      if (cancelled) return;
-      candles.setData(data.candles as never);
-      volume.setData(data.volume as never);
-      ema50.setData(data.ema_50 as never);
-      ema200.setData(data.ema_200 as never);
-      supertrend.setData(data.supertrend as never);
-      chart.timeScale().fitContent();
+      try {
+        const data = await api<CandlePayload>(
+          `/api/market/candles?market=${market}&exchange=${exchange}` +
+            `&symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}&limit=300`,
+        );
+        if (cancelled) return;
+        if (!Array.isArray(data.candles) || !data.candles.length) {
+          setError("Bu sembol/zaman dilimi için mum verisi ölçülemedi.");
+          return;
+        }
+        candles.setData(data.candles as never);
+        volume.setData((data.volume ?? []) as never);
+        ema50.setData((data.ema_50 ?? []) as never);
+        ema200.setData((data.ema_200 ?? []) as never);
+        supertrend.setData((data.supertrend ?? []) as never);
+        chart.timeScale().fitContent();
 
-      levels.forEach((level) =>
-        candles.createPriceLine({
-          price: level.price,
-          color: level.color,
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          axisLabelVisible: true,
-          title: level.title,
-        }),
-      );
+        levels.forEach((level) =>
+          candles.createPriceLine({
+            price: level.price,
+            color: level.color,
+            lineWidth: 1,
+            lineStyle: LineStyle.Dashed,
+            axisLabelVisible: true,
+            title: level.title,
+          }),
+        );
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Grafik yüklenemedi.");
+      }
     })();
 
     const resize = () =>
@@ -114,7 +129,16 @@ export function PriceChart({
       window.removeEventListener("resize", resize);
       chart.remove();
     };
-  }, [market, exchange, symbol, timeframe, height, levels]);
+  }, [market, exchange, symbol, timeframe, height, levelKey]);
 
-  return <div ref={boxRef} className="w-full" />;
+  return (
+    <div className="relative w-full">
+      <div ref={boxRef} className="w-full" />
+      {error && (
+        <div className="absolute inset-0 grid place-items-center rounded-lg bg-[#0e1622]/80 px-4 text-center text-[12.5px] text-slate-400">
+          {error}
+        </div>
+      )}
+    </div>
+  );
 }

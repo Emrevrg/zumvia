@@ -31,8 +31,14 @@ export default function CommandPage() {
   const llmKeys = (credentials ?? []).filter((c) => c.kind === "llm");
   const session = sessions?.find((s) => s.id === sessionId) ?? null;
 
-  /* --- ilk oturumu seç --- */
+  /* --- ilk oturumu seç (veya ?session= ile gelen görevi aç) --- */
   useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("session");
+    const wanted = Number(q);
+    if (q && wanted) {
+      setSessionId(wanted);
+      return;
+    }
     if (!sessionId && sessions?.length) setSessionId(sessions[0].id);
   }, [sessions, sessionId]);
 
@@ -50,7 +56,7 @@ export default function CommandPage() {
     return openEventStream((event) => {
       if (event.type === "agent" && event.session_id === sessionId) {
         if (event.message?.role === "user") return;
-        setMessages((prev) => [...prev, event.message]);
+        if (event.message) setMessages((prev) => [...prev, event.message]);
       }
       if (event.type === "agent_status" && event.session_id === sessionId) {
         setStatus(event.status);
